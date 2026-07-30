@@ -6,6 +6,7 @@ import Link from "next/link";
 import { importStudents } from "../../actions";
 import type { ImportRow } from "@/lib/types";
 import type { SchoolRef } from "@/lib/data";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 
 const inputCls =
   "rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -38,6 +39,7 @@ function mapRow(raw: Record<string, unknown>): ImportRow | null {
 }
 
 export function ImportClient({ schools }: { schools: SchoolRef[] }) {
+  const { syncNow } = useOffline();
   const [schoolId, setSchoolId] = useState(schools[0]?.id ?? "");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [rejected, setRejected] = useState(0);
@@ -73,10 +75,12 @@ export function ImportClient({ schools }: { schools: SchoolRef[] }) {
     const res = await importStudents(schoolId, rows);
     setBusy(false);
     if (res.error) setResult(`Erreur : ${res.error}`);
-    else
+    else {
       setResult(
         `${res.inserted} élève(s) importé(s), ${res.skipped} ignoré(s) (doublons ou déjà présents).`,
       );
+      void syncNow(); // rafraîchit le cache local avec les élèves importés
+    }
     setRows([]);
   }
 

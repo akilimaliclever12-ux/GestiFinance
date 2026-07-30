@@ -1,113 +1,208 @@
-import { createClient } from "@/lib/supabase/server";
-import { getMySchools } from "@/lib/data";
-import { getSessionProfile } from "@/lib/auth";
-import { ExpenseForm, type CategoryRef } from "./ExpenseForm";
-import { ExpenseCategoryForm } from "./ExpenseCategoryForm";
+"use client";
+
+import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/offline/db";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import {
+  listSchools,
+  listCategories,
+  listRecentExpenses,
+  createExpenseLocal,
+  createExpenseCategoryLocal,
+} from "@/lib/offline/repo";
+import {
+  CURRENCIES,
   PAYMENT_METHOD_LABELS,
   type CurrencyCode,
   type PaymentMethod,
 } from "@/lib/types";
 
-type ExpRow = {
-  id: string;
-  beneficiary: string | null;
-  amount: number;
-  currency: CurrencyCode;
-  payment_method: PaymentMethod | null;
-  reference: string | null;
-  paid_at: string;
-  expense_categories: { name: string } | null;
-};
-
+const inputCls =
+  "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
 const money = (n: number, c: string) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 
-export default async function ExpensesPage() {
-  const supabase = await createClient();
-  const session = await getSessionProfile();
-  const today = new Date().toISOString().slice(0, 10);
+export default function ExpensesPage() {
+  const { ctx, flush } = useOffline();
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
+  const [catMsg, setCatMsg] = useState<{ ok?: string; err?: string }>({});
 
-  const schools = await getMySchools();
+  const schools = useLiveQuery(() => listSchools(), [], []);
+  const categories = useLiveQuery(() => listCategories(), [], []);
+  const recent = useLiveQuery(() => listRecentExpenses(), [], []);
+  const defCur = useLiveQuery(() => db.meta.get("defaultCurrency"), [], undefined);
+  const defaultCurrency = (defCur?.value as CurrencyCode) ?? "CDF";
 
-  const [{ data: cats }, { data: tenant }, { data: expenses }, { data: cancels }] =
-    await Promise.all([
-      supabase
-        .from("expense_categories")
-        .select("id, name, school_id")
-        .is("deleted_at", null)
-        .order("name"),
-      supabase
-        .from("tenants")
-        .select("default_currency")
-        .eq("id", session?.profile?.tenant_id ?? "")
-        .single(),
-      supabase
-        .from("expense_events")
-        .select(
-          "id, beneficiary, amount, currency, payment_method, reference, paid_at, expense_categories(name)",
-        )
-        .eq("event_type", "expense")
-        .order("created_at", { ascending: false })
-        .limit(30),
-      supabase
-        .from("expense_events")
-        .select("cancels_event_id")
-        .eq("event_type", "cancellation"),
-    ]);
+  const [schoolId, setSchoolId] = useState<string>("");
+  const effSchool = schoolId || schools[0]?.id || "";
+  const cats = categories.filter((c) => c.school_id === effSchool);
+  const methods = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[];
 
-  const categories = (cats ?? []) as CategoryRef[];
-  const defaultCurrency = (tenant?.default_currency ?? "CDF") as CurrencyCode;
-  const rows = (expenses ?? []) as unknown as ExpRow[];
-  const cancelled = new Set((cancels ?? []).map((c) => c.cancels_event_id as string));
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setMsg({});
+    const f = new FormData(e.currentTarget);
+    const res = await createExpenseLocal(ctx, {
+      school_id: effSchool,
+      category_id: String(f.get("category_id") || "") || null,
+      beneficiary: String(f.get("beneficiary") || "").trim() || null,
+      amount: Number(f.get("amount") || 0),
+      currency: String(f.get("currency") || defaultCurrency) as CurrencyCode,
+      payment_method: (String(f.get("payment_method") || "") || null) as PaymentMethod | null,
+      reference: String(f.get("reference") || "").trim() || null,
+      paid_at: String(f.get("paid_at") || today),
+      note: String(f.get("note") || "").trim() || null,
+    });
+    if (res.error) setMsg({ err: res.error });
+    else {
+      setMsg({ ok: "Dépense enregistrée." });
+      e.currentTarget.reset();
+      void flush();
+    }
+  }
+
+  async function onAddCategory(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setCatMsg({});
+    const f = new FormData(e.currentTarget);
+    const name = String(f.get("name") || "").trim();
+    const school = String(f.get("school_id") || effSchool);
+    if (!name || !school) return setCatMsg({ err: "École et intitulé requis." });
+    const res = await createExpenseCategoryLocal(ctx, { school_id: school, name });
+    if (res.error) setCatMsg({ err: res.error });
+    else {
+      setCatMsg({ ok: `Catégorie « ${name} » créée.` });
+      e.currentTarget.reset();
+      void flush();
+    }
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-lg font-semibold">Dépenses (livre de caisse)</h1>
         <p className="text-sm text-neutral-500">
-          Enregistrez les sorties : salaires, loyer, fournitures…
+          Enregistrez les sorties. Fonctionne hors-ligne : tout se synchronise au
+          retour du réseau.
         </p>
       </div>
 
-      <ExpenseForm
-        schools={schools}
-        categories={categories}
-        defaultCurrency={defaultCurrency}
-        today={today}
-      />
+      <form
+        onSubmit={onSubmit}
+        className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+      >
+        <h2 className="mb-3 text-sm font-semibold">Nouvelle dépense</h2>
+        {schools.length > 1 && (
+          <div className="mb-3">
+            <label className="mb-1 block text-xs text-neutral-500">École *</label>
+            <select
+              className={inputCls}
+              value={effSchool}
+              onChange={(e) => setSchoolId(e.target.value)}
+            >
+              {schools.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <select name="category_id" className={inputCls} defaultValue="">
+            <option value="">Catégorie — (non classée)</option>
+            {cats.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <input name="beneficiary" className={inputCls} placeholder="Bénéficiaire" />
+          <select name="payment_method" className={inputCls} defaultValue="cash">
+            {methods.map((m) => (
+              <option key={m} value={m}>
+                {PAYMENT_METHOD_LABELS[m]}
+              </option>
+            ))}
+          </select>
+          <input name="amount" type="number" min="0" step="0.01" className={inputCls} placeholder="Montant *" required />
+          <select name="currency" className={inputCls} defaultValue={defaultCurrency} key={defaultCurrency}>
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <input name="paid_at" type="date" className={inputCls} defaultValue={today} required />
+          <input name="reference" className={inputCls} placeholder="N° de pièce" />
+          <input name="note" className={inputCls + " lg:col-span-2"} placeholder="Note (optionnel)" />
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={!effSchool}
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
+          >
+            Enregistrer la dépense
+          </button>
+          {msg.err && <span className="text-sm text-red-600">{msg.err}</span>}
+          {msg.ok && <span className="text-sm text-emerald-600">{msg.ok}</span>}
+        </div>
+      </form>
 
-      <ExpenseCategoryForm schools={schools} />
+      <form
+        onSubmit={onAddCategory}
+        className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-900/40"
+      >
+        <h3 className="mb-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+          Ajouter une catégorie de dépense
+        </h3>
+        <div className="flex flex-wrap items-center gap-2">
+          {schools.length > 1 && (
+            <select name="school_id" className={inputCls + " max-w-48"} defaultValue={effSchool}>
+              {schools.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <input name="name" className={inputCls + " max-w-64"} placeholder="Ex. Salaires, Loyer…" required />
+          <button className="rounded-lg border border-brand px-3 py-2 text-sm font-medium text-brand hover:bg-brand-light dark:hover:bg-brand/10">
+            Ajouter
+          </button>
+          {catMsg.err && <span className="text-sm text-red-600">{catMsg.err}</span>}
+          {catMsg.ok && <span className="text-sm text-emerald-600">{catMsg.ok}</span>}
+        </div>
+      </form>
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
           Dernières dépenses
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <table className="w-full min-w-[680px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
             <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
               <tr>
                 <th className="px-4 py-2">Date</th>
                 <th className="px-4 py-2">Catégorie</th>
                 <th className="px-4 py-2">Bénéficiaire</th>
-                <th className="px-4 py-2">Mode</th>
                 <th className="px-4 py-2">Montant</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-              {rows.map((e) => {
-                const isCancelled = cancelled.has(e.id);
+              {(recent ?? []).map((e) => {
+                const cat = categories.find((c) => c.id === e.category_id);
                 return (
-                  <tr key={e.id} className={isCancelled ? "opacity-50" : ""}>
+                  <tr key={e.id} className={e.cancelled ? "opacity-50" : ""}>
                     <td className="px-4 py-2">{e.paid_at}</td>
-                    <td className="px-4 py-2">{e.expense_categories?.name ?? "—"}</td>
+                    <td className="px-4 py-2">{cat?.name ?? "—"}</td>
                     <td className="px-4 py-2">{e.beneficiary ?? "—"}</td>
-                    <td className="px-4 py-2 text-xs text-neutral-500">
-                      {e.payment_method ? PAYMENT_METHOD_LABELS[e.payment_method] : "—"}
-                    </td>
                     <td className="px-4 py-2 font-medium">
                       {money(e.amount, e.currency)}
-                      {isCancelled && (
+                      {e.cancelled && (
                         <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
                           Annulée
                         </span>
@@ -116,9 +211,9 @@ export default async function ExpensesPage() {
                   </tr>
                 );
               })}
-              {rows.length === 0 && (
+              {(!recent || recent.length === 0) && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-4 text-neutral-500">
+                  <td colSpan={4} className="px-4 py-4 text-neutral-500">
                     Aucune dépense enregistrée.
                   </td>
                 </tr>

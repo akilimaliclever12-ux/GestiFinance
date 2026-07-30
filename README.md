@@ -14,7 +14,7 @@ Logiciel de **gestion des finances scolaires**, Offline-First, pour les écoles 
 | **P1** | Élèves (création + import Excel/CSV + recherche) + frais (types + barèmes multi-devises) | ✅ Fait |
 | **P2** | Paiements append-only (saisie bordereau + solvabilité live) + reçu imprimable + annulation autorisée | ✅ Fait |
 | **P3a** | PWA installable + shell mis en cache (s'ouvre hors-ligne) | ✅ Fait |
-| P3b | Sync offline des données (Dexie ↔ Supabase) | À venir |
+| **P3b** | Offline-first des données : base locale Dexie + file de synchro (outbox) + saisie hors-ligne (Élèves, Paiements avec solvabilité locale, Dépenses) + indicateur de synchro | ✅ Fait |
 | **P4** | Dashboard promoteur : recettes par devise (jour/mois/année) + solvables/non-solvables en temps réel | ✅ Fait |
 | **P5** | Dépenses (livre de caisse) : catégories + sorties append-only + annulation autorisée ; dashboard Recettes/Dépenses/**Solde net** par devise | ✅ Fait |
 | P5 | Rapports + exports | À venir |

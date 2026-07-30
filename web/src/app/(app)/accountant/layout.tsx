@@ -5,6 +5,7 @@ const TABS = [
   { href: "/accountant/students", label: "Élèves" },
   { href: "/accountant/fees", label: "Frais" },
   { href: "/accountant/payments", label: "Paiements" },
+  { href: "/accountant/expenses", label: "Dépenses" },
 ];
 
 export default function AccountantLayout({

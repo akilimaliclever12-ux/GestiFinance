@@ -3,6 +3,7 @@ import Link from "next/link";
 const TABS = [
   { href: "/owner", label: "Tableau de bord" },
   { href: "/owner/payments", label: "Paiements" },
+  { href: "/owner/expenses", label: "Dépenses" },
 ];
 
 export default function OwnerLayout({

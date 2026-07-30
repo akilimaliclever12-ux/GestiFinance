@@ -16,6 +16,7 @@ Logiciel de **gestion des finances scolaires**, Offline-First, pour les écoles 
 | **P3a** | PWA installable + shell mis en cache (s'ouvre hors-ligne) | ✅ Fait |
 | P3b | Sync offline des données (Dexie ↔ Supabase) | À venir |
 | **P4** | Dashboard promoteur : recettes par devise (jour/mois/année) + solvables/non-solvables en temps réel | ✅ Fait |
+| **P5** | Dépenses (livre de caisse) : catégories + sorties append-only + annulation autorisée ; dashboard Recettes/Dépenses/**Solde net** par devise | ✅ Fait |
 | P5 | Rapports + exports | À venir |
 | P6 | Vue directeur (statut sans montants) | Ébauche (P0) |
 

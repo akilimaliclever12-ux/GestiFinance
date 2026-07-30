@@ -22,6 +22,17 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   controller: "Directeur / Préfet",
 };
 
+export type PaymentMethod = "cash" | "bank" | "mobile_money" | "other";
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: "Espèces",
+  bank: "Banque",
+  mobile_money: "Mobile Money",
+  other: "Autre",
+};
+
+export const CURRENCIES: CurrencyCode[] = ["CDF", "USD", "BIF"];
+
 /** Ligne d'import d'élève (Excel/CSV). */
 export interface ImportRow {
   matricule: string;

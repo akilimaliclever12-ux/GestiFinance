@@ -1,0 +1,21 @@
+# === GestiFinance — .gitignore racine (filet de sécurité) ===
+
+# Dépendances / build
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Secrets — ne JAMAIS commiter les vraies clés
+.env
+.env.*
+!.env*.example
+
+# Divers
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vercel
+*.tsbuildinfo

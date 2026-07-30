@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GestiFinance — Hors-ligne</title>
+    <style>
+      html, body { height: 100%; margin: 0; font-family: Arial, Helvetica, sans-serif; }
+      body {
+        display: flex; align-items: center; justify-content: center;
+        background: #f5f5f5; color: #171717; text-align: center; padding: 1.5rem;
+      }
+      .card {
+        max-width: 22rem; background: #fff; border: 1px solid #e5e5e5;
+        border-radius: 1rem; padding: 2rem 1.5rem;
+      }
+      img { width: 72px; height: 72px; object-fit: contain; }
+      h1 { color: #1668e3; font-size: 1.25rem; margin: 0.75rem 0 0.25rem; }
+      p { color: #666; font-size: 0.9rem; line-height: 1.4; }
+      button {
+        margin-top: 1rem; border: 0; background: #1668e3; color: #fff;
+        padding: 0.6rem 1.1rem; border-radius: 0.6rem; font-weight: 600; cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="/logo.png" alt="GestiFinance" />
+      <h1>Vous êtes hors-ligne</h1>
+      <p>
+        Pas de connexion Internet pour le moment. Cette page nécessite le réseau.
+        La saisie hors-ligne complète arrive dans une prochaine mise à jour.
+      </p>
+      <button onclick="location.reload()">Réessayer</button>
+    </div>
+  </body>
+</html>

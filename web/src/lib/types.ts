@@ -7,6 +7,8 @@ export interface Profile {
   tenant_id: string;
   full_name: string | null;
   role: AppRole;
+  can_payments: boolean;
+  can_expenses: boolean;
 }
 
 /** Tableau de bord d'accueil selon le rôle. */

@@ -1,22 +1,27 @@
 import Link from "next/link";
+import { getSessionProfile } from "@/lib/auth";
 
-const TABS = [
-  { href: "/accountant", label: "Accueil" },
-  { href: "/accountant/students", label: "Élèves" },
-  { href: "/accountant/fees", label: "Frais" },
-  { href: "/accountant/payments", label: "Paiements" },
-  { href: "/accountant/expenses", label: "Dépenses" },
-];
-
-export default function AccountantLayout({
+export default async function AccountantLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSessionProfile();
+  const canPayments = session?.profile?.can_payments ?? true;
+  const canExpenses = session?.profile?.can_expenses ?? true;
+
+  const tabs = [
+    { href: "/accountant", label: "Accueil", show: true },
+    { href: "/accountant/students", label: "Élèves", show: true },
+    { href: "/accountant/fees", label: "Frais", show: true },
+    { href: "/accountant/payments", label: "Paiements", show: canPayments },
+    { href: "/accountant/expenses", label: "Dépenses", show: canExpenses },
+  ].filter((t) => t.show);
+
   return (
     <div className="space-y-6">
       <nav className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <Link
             key={t.href}
             href={t.href}

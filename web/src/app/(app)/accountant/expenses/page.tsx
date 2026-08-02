@@ -24,7 +24,7 @@ const money = (n: number, c: string) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 
 export default function ExpensesPage() {
-  const { ctx, flush } = useOffline();
+  const { ctx, flush, perms } = useOffline();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
   const [catMsg, setCatMsg] = useState<{ ok?: string; err?: string }>({});
@@ -77,6 +77,15 @@ export default function ExpensesPage() {
       e.currentTarget.reset();
       void flush();
     }
+  }
+
+  if (!perms.canExpenses) {
+    return (
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+        Vous n&apos;êtes pas autorisé à enregistrer les dépenses. Contactez le
+        promoteur.
+      </div>
+    );
   }
 
   return (

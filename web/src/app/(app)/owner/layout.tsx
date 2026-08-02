@@ -5,7 +5,7 @@ const TABS = [
   { href: "/owner/payments", label: "Paiements" },
   { href: "/owner/expenses", label: "Dépenses" },
   { href: "/owner/history", label: "Historique" },
-  { href: "/owner/staff", label: "Comptables" },
+  { href: "/owner/staff", label: "Personnel" },
 ];
 
 export default function OwnerLayout({

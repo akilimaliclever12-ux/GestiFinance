@@ -38,6 +38,8 @@ export default async function AppLayout({
       userId={session.userId}
       tenantId={profile.tenant_id}
       enabled={isAccountant}
+      canPayments={profile.can_payments}
+      canExpenses={profile.can_expenses}
     >
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
         <AppHeader

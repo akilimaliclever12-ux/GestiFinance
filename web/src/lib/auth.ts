@@ -16,7 +16,7 @@ export async function getSessionProfile(): Promise<{
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, tenant_id, full_name, role")
+    .select("id, tenant_id, full_name, role, can_payments, can_expenses")
     .eq("id", user.id)
     .single<Profile>();
 

@@ -19,7 +19,7 @@ const money = (n: number, c: string) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 
 export default function PaymentsPage() {
-  const { ctx, flush } = useOffline();
+  const { ctx, flush, perms } = useOffline();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Résolution des noms pour l'historique
@@ -80,6 +80,15 @@ export default function PaymentsPage() {
       setSavedId(res.id ?? null);
       void flush();
     }
+  }
+
+  if (!perms.canPayments) {
+    return (
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+        Vous n&apos;êtes pas autorisé à enregistrer les paiements. Contactez le
+        promoteur.
+      </div>
+    );
   }
 
   return (

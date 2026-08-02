@@ -17,6 +17,8 @@ interface OfflineState {
   syncing: boolean;
   lastSync: number | null;
   ctx: Ctx;
+  /** Permissions du comptable courant. */
+  perms: { canPayments: boolean; canExpenses: boolean };
   /** Pousse la file puis rafraîchit depuis Supabase. */
   syncNow: () => Promise<void>;
   /** Pousse la file uniquement (rapide, après une saisie). */
@@ -35,11 +37,15 @@ export function OfflineProvider({
   userId,
   tenantId,
   enabled,
+  canPayments = true,
+  canExpenses = true,
   children,
 }: {
   userId: string;
   tenantId: string;
   enabled: boolean;
+  canPayments?: boolean;
+  canExpenses?: boolean;
   children: React.ReactNode;
 }) {
   const [online, setOnline] = useState(true);
@@ -107,6 +113,7 @@ export function OfflineProvider({
         syncing,
         lastSync,
         ctx: { userId, tenantId },
+        perms: { canPayments, canExpenses },
         syncNow,
         flush,
       }}

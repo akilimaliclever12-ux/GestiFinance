@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionProfile } from "@/lib/auth";
 
 export default async function AccountantHome() {
   const supabase = await createClient();
+  const session = await getSessionProfile();
+  const canPayments = session?.profile?.can_payments ?? true;
+  const canExpenses = session?.profile?.can_expenses ?? true;
+
   const [{ count: students }, { count: feeTypes }] = await Promise.all([
     supabase.from("students").select("id", { count: "exact", head: true }).is("deleted_at", null),
     supabase.from("fee_types").select("id", { count: "exact", head: true }).is("deleted_at", null),
@@ -12,9 +17,7 @@ export default async function AccountantHome() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Espace Comptable</h1>
-        <p className="text-sm text-neutral-500">
-          Gérez les élèves, les frais et (bientôt) les paiements.
-        </p>
+        <p className="text-sm text-neutral-500">Gérez les élèves, les frais et les mouvements.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -32,13 +35,24 @@ export default async function AccountantHome() {
           badge={`${feeTypes ?? 0} type(s)`}
           active
         />
-        <ModuleCard
-          href="/accountant/payments"
-          title="Paiements"
-          desc="Enregistrement des bordereaux + reçus"
-          badge="Ouvrir"
-          active
-        />
+        {canPayments && (
+          <ModuleCard
+            href="/accountant/payments"
+            title="Paiements"
+            desc="Enregistrement des bordereaux + reçus"
+            badge="Entrées"
+            active
+          />
+        )}
+        {canExpenses && (
+          <ModuleCard
+            href="/accountant/expenses"
+            title="Dépenses"
+            desc="Livre de caisse — sorties"
+            badge="Sorties"
+            active
+          />
+        )}
       </div>
     </div>
   );

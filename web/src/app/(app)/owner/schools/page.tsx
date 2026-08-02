@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SchoolForm } from "./SchoolForm";
 
@@ -37,6 +38,7 @@ export default async function SchoolsPage() {
                 <th className="px-4 py-2">Nom</th>
                 <th className="px-4 py-2">Adresse</th>
                 <th className="px-4 py-2 text-right">Élèves</th>
+                <th className="px-4 py-2">En-tête</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -45,11 +47,16 @@ export default async function SchoolsPage() {
                   <td className="px-4 py-2 font-medium">{s.name}</td>
                   <td className="px-4 py-2 text-neutral-500">{s.address ?? "—"}</td>
                   <td className="px-4 py-2 text-right">{countBySchool.get(s.id) ?? 0}</td>
+                  <td className="px-4 py-2">
+                    <Link href={`/owner/schools/${s.id}`} className="text-brand hover:underline">
+                      Configurer
+                    </Link>
+                  </td>
                 </tr>
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-4 text-neutral-500">
+                  <td colSpan={4} className="px-4 py-4 text-neutral-500">
                     Aucune école. Ajoutez-en une ci-dessus.
                   </td>
                 </tr>

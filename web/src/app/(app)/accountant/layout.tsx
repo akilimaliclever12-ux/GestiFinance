@@ -20,12 +20,12 @@ export default async function AccountantLayout({
 
   return (
     <div className="space-y-6">
-      <nav className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
+      <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-neutral-200 dark:border-neutral-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((t) => (
           <Link
             key={t.href}
             href={t.href}
-            className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-neutral-600 hover:border-brand hover:text-brand dark:text-neutral-300"
+            className="shrink-0 border-b-2 border-transparent px-3 py-2 text-sm font-medium text-neutral-600 hover:border-brand hover:text-brand dark:text-neutral-300"
           >
             {t.label}
           </Link>

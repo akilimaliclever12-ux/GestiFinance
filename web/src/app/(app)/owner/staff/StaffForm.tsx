@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createStaff } from "@/lib/staff-actions";
+import { useToastOnSuccess } from "@/components/Toast";
 import type { SchoolRef } from "@/lib/data";
 
 const inputCls =
@@ -9,6 +10,7 @@ const inputCls =
 
 export function StaffForm({ schools }: { schools: SchoolRef[] }) {
   const [state, action, pending] = useActionState(createStaff, null);
+  useToastOnSuccess(state);
   const [role, setRole] = useState<"accountant" | "controller">("accountant");
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -90,7 +92,6 @@ export function StaffForm({ schools }: { schools: SchoolRef[] }) {
           {pending ? "Création…" : "Créer l'utilisateur"}
         </button>
         {state?.error && <span className="text-sm text-red-600">{state.error}</span>}
-        {state?.success && <span className="text-sm text-emerald-600">{state.success}</span>}
       </div>
       <p className="mt-2 text-xs text-neutral-400">
         L&apos;utilisateur pourra se connecter immédiatement avec cet email et ce mot

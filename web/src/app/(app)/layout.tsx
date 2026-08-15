@@ -41,13 +41,15 @@ export default async function AppLayout({
       canPayments={profile.can_payments}
       canExpenses={profile.can_expenses}
     >
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+      <div className="relative min-h-screen bg-app">
+        {/* Halo de marque discret en haut de page */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-brand/[0.07] to-transparent dark:from-brand/[0.10]" />
         <AppHeader
           roleLabel={ROLE_LABELS[profile.role]}
           displayName={profile.full_name ?? email ?? ""}
           showSync={isAccountant}
         />
-        <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+        <main className="relative mx-auto max-w-5xl px-4 py-8">{children}</main>
       </div>
     </OfflineProvider>
   );

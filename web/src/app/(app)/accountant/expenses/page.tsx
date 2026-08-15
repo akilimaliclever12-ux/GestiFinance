@@ -19,6 +19,7 @@ import {
 } from "@/lib/types";
 import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
 import { EmptyState } from "@/components/EmptyState";
+import { useToast } from "@/components/Toast";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -27,6 +28,7 @@ const money = (n: number, c: string) =>
 
 export default function ExpensesPage() {
   const { ctx, flush, perms } = useOffline();
+  const toast = useToast();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
   const [catMsg, setCatMsg] = useState<{ ok?: string; err?: string }>({});
@@ -59,7 +61,8 @@ export default function ExpensesPage() {
     });
     if (res.error) setMsg({ err: res.error });
     else {
-      setMsg({ ok: "Dépense enregistrée." });
+      setMsg({});
+      toast.show("Dépense enregistrée.");
       e.currentTarget.reset();
       void flush();
     }
@@ -75,7 +78,8 @@ export default function ExpensesPage() {
     const res = await createExpenseCategoryLocal(ctx, { school_id: school, name });
     if (res.error) setCatMsg({ err: res.error });
     else {
-      setCatMsg({ ok: `Catégorie « ${name} » créée.` });
+      setCatMsg({});
+      toast.show(`Catégorie « ${name} » créée.`);
       e.currentTarget.reset();
       void flush();
     }

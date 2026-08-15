@@ -2,12 +2,14 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { createSchool } from "@/lib/schools-actions";
+import { useToastOnSuccess } from "@/components/Toast";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
 
 export function SchoolForm() {
   const [state, action, pending] = useActionState(createSchool, null);
+  useToastOnSuccess(state);
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.success) formRef.current?.reset();

@@ -3,11 +3,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Canvas de l'application (distinct des cartes → relief) */
+  --app-bg: #f3f5f9;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-app: var(--app-bg);
 
   /* Palette de marque GestiEcole / GestiFinance — couleurs du drapeau RDC */
   --color-brand: #1668e3; /* bleu principal */
@@ -21,7 +24,14 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    /* Bleu-noir profond : plus de caractère que le gris pur */
+    --app-bg: #0a0d12;
   }
+}
+
+html {
+  /* Contrôles natifs (calendriers, barres de défilement) adaptés au thème */
+  color-scheme: light dark;
 }
 
 body {
@@ -30,7 +40,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Impression des reçus : masquer l'interface, fond blanc. */
+/* Impression des reçus / rapports : masquer l'interface, fond blanc. */
 @media print {
   .no-print {
     display: none !important;

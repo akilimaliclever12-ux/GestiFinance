@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateSchoolLetterhead } from "@/lib/schools-actions";
+import { useToastOnSuccess } from "@/components/Toast";
 import { Letterhead, type SchoolLetterhead } from "@/components/Letterhead";
 
 const inputCls =
@@ -11,6 +12,7 @@ type Fields = SchoolLetterhead & { id: string };
 
 export function LetterheadForm({ school }: { school: Fields }) {
   const [state, action, pending] = useActionState(updateSchoolLetterhead, null);
+  useToastOnSuccess(state);
   const [f, setF] = useState<Fields>(school);
   const set = (k: keyof Fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setF((prev) => ({ ...prev, [k]: e.target.value }));

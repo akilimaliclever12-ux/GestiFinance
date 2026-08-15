@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createFeeType, createFeeSchedule } from "../actions";
+import { useToastOnSuccess } from "@/components/Toast";
 import { cardCls } from "@/lib/ui";
 import type { SchoolRef } from "@/lib/data";
 import type { CurrencyCode } from "@/lib/types";
@@ -20,6 +21,7 @@ export interface FeeTypeRef {
 
 export function FeeTypeForm({ schools }: { schools: SchoolRef[] }) {
   const [state, action, pending] = useActionState(createFeeType, null);
+  useToastOnSuccess(state);
   return (
     <form
       action={action}
@@ -66,6 +68,7 @@ export function FeeTypeForm({ schools }: { schools: SchoolRef[] }) {
 
 export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
   const [state, action, pending] = useActionState(createFeeSchedule, null);
+  useToastOnSuccess(state);
   const [schoolId, setSchoolId] = useState(feeTypes[0]?.school_id ?? "");
 
   if (feeTypes.length === 0) {

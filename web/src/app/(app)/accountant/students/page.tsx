@@ -7,12 +7,14 @@ import { useOffline } from "@/lib/offline/OfflineProvider";
 import { listSchools, listStudents, createStudentLocal } from "@/lib/offline/repo";
 import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
 import { EmptyState } from "@/components/EmptyState";
+import { useToast } from "@/components/Toast";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
 
 export default function StudentsPage() {
   const { ctx, flush } = useOffline();
+  const toast = useToast();
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
   const [schoolId, setSchoolId] = useState("");
@@ -36,7 +38,8 @@ export default function StudentsPage() {
     });
     if (res.error) setMsg({ err: res.error });
     else {
-      setMsg({ ok: "Élève enregistré." });
+      setMsg({});
+      toast.show("Élève enregistré.");
       e.currentTarget.reset();
       void flush();
     }

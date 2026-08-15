@@ -125,7 +125,7 @@ function Stat({
       </div>
       <div className="min-w-0">
         <p className="truncate text-xs text-neutral-500">{label}</p>
-        <p className={`text-2xl font-bold ${t.text}`}>{value}</p>
+        <p className={`text-3xl font-bold tabular-nums ${t.text}`}>{value}</p>
       </div>
     </div>
   );

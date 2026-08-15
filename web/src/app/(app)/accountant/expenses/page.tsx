@@ -17,6 +17,8 @@ import {
   type CurrencyCode,
   type PaymentMethod,
 } from "@/lib/types";
+import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
+import { EmptyState } from "@/components/EmptyState";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -98,10 +100,7 @@ export default function ExpensesPage() {
         </p>
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
-      >
+      <form onSubmit={onSubmit} className={cardCls}>
         <h2 className="mb-3 text-sm font-semibold">Nouvelle dépense</h2>
         {schools.length > 1 && (
           <div className="mb-3">
@@ -192,24 +191,24 @@ export default function ExpensesPage() {
           Dernières dépenses
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
+          <table className={`${tableCls} min-w-[680px]`}>
+            <thead className={theadCls}>
               <tr>
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2">Catégorie</th>
-                <th className="px-4 py-2">Bénéficiaire</th>
-                <th className="px-4 py-2">Montant</th>
+                <th className={thCls}>Date</th>
+                <th className={thCls}>Catégorie</th>
+                <th className={thCls}>Bénéficiaire</th>
+                <th className={thCls}>Montant</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            <tbody className={tbodyCls}>
               {(recent ?? []).map((e) => {
                 const cat = categories.find((c) => c.id === e.category_id);
                 return (
-                  <tr key={e.id} className={e.cancelled ? "opacity-50" : ""}>
-                    <td className="px-4 py-2">{e.paid_at}</td>
-                    <td className="px-4 py-2">{cat?.name ?? "—"}</td>
-                    <td className="px-4 py-2">{e.beneficiary ?? "—"}</td>
-                    <td className="px-4 py-2 font-medium">
+                  <tr key={e.id} className={`${rowCls} ${e.cancelled ? "opacity-50" : ""}`}>
+                    <td className={`${tdCls} whitespace-nowrap`}>{e.paid_at}</td>
+                    <td className={tdCls}>{cat?.name ?? "—"}</td>
+                    <td className={tdCls}>{e.beneficiary ?? "—"}</td>
+                    <td className={`${tdCls} font-medium text-red-600 dark:text-red-400`}>
                       {money(e.amount, e.currency)}
                       {e.cancelled && (
                         <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
@@ -222,8 +221,8 @@ export default function ExpensesPage() {
               })}
               {(!recent || recent.length === 0) && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-4 text-neutral-500">
-                    Aucune dépense enregistrée.
+                  <td colSpan={4}>
+                    <EmptyState>Aucune dépense enregistrée.</EmptyState>
                   </td>
                 </tr>
               )}

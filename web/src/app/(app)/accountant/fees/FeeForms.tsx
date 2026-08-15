@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createFeeType, createFeeSchedule } from "../actions";
+import { cardCls } from "@/lib/ui";
 import type { SchoolRef } from "@/lib/data";
 import type { CurrencyCode } from "@/lib/types";
 
@@ -22,7 +23,7 @@ export function FeeTypeForm({ schools }: { schools: SchoolRef[] }) {
   return (
     <form
       action={action}
-      className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+      className={cardCls}
     >
       <h2 className="mb-3 text-sm font-semibold">Nouveau type de frais</h2>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -78,7 +79,7 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
   return (
     <form
       action={action}
-      className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+      className={cardCls}
     >
       <h2 className="mb-3 text-sm font-semibold">Nouveau barème (montant attendu)</h2>
       <input type="hidden" name="school_id" value={schoolId} />

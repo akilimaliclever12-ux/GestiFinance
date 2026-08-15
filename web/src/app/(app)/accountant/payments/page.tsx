@@ -12,6 +12,8 @@ import {
   type StudentFeeContext,
 } from "@/lib/offline/repo";
 import { db, type StudentRow } from "@/lib/offline/db";
+import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
+import { EmptyState } from "@/components/EmptyState";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -126,10 +128,7 @@ export default function PaymentsPage() {
           </p>
         </div>
       ) : (
-        <form
-          onSubmit={onSubmit}
-          className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
-        >
+        <form onSubmit={onSubmit} className={cardCls}>
           <h2 className="mb-3 text-sm font-semibold">Enregistrer un paiement</h2>
 
           <div className="relative mb-3">
@@ -263,25 +262,25 @@ export default function PaymentsPage() {
           Derniers paiements
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
+          <table className={`${tableCls} min-w-[720px]`}>
+            <thead className={theadCls}>
               <tr>
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2">Élève</th>
-                <th className="px-4 py-2">Frais</th>
-                <th className="px-4 py-2">Bordereau</th>
-                <th className="px-4 py-2">Montant</th>
-                <th className="px-4 py-2">Reçu</th>
+                <th className={thCls}>Date</th>
+                <th className={thCls}>Élève</th>
+                <th className={thCls}>Frais</th>
+                <th className={thCls}>Bordereau</th>
+                <th className={thCls}>Montant</th>
+                <th className={thCls}>Reçu</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            <tbody className={tbodyCls}>
               {(recent ?? []).map((p) => (
-                <tr key={p.id} className={p.cancelled ? "opacity-50" : ""}>
-                  <td className="px-4 py-2">{p.paid_at}</td>
-                  <td className="px-4 py-2">{studentName.get(p.student_id) ?? "—"}</td>
-                  <td className="px-4 py-2">{feeName.get(p.fee_type_id) ?? "—"}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{p.bordereau_no ?? "—"}</td>
-                  <td className="px-4 py-2 font-medium">
+                <tr key={p.id} className={`${rowCls} ${p.cancelled ? "opacity-50" : ""}`}>
+                  <td className={`${tdCls} whitespace-nowrap`}>{p.paid_at}</td>
+                  <td className={tdCls}>{studentName.get(p.student_id) ?? "—"}</td>
+                  <td className={tdCls}>{feeName.get(p.fee_type_id) ?? "—"}</td>
+                  <td className={`${tdCls} font-mono text-xs`}>{p.bordereau_no ?? "—"}</td>
+                  <td className={`${tdCls} font-medium`}>
                     {money(p.amount, p.currency)}
                     {p.cancelled && (
                       <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
@@ -289,8 +288,8 @@ export default function PaymentsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2">
-                    <Link href={`/receipt/${p.id}`} className="text-brand hover:underline">
+                  <td className={tdCls}>
+                    <Link href={`/receipt/${p.id}`} className="font-medium text-brand hover:underline">
                       Reçu
                     </Link>
                   </td>
@@ -298,8 +297,8 @@ export default function PaymentsPage() {
               ))}
               {(!recent || recent.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-neutral-500">
-                    Aucun paiement enregistré.
+                  <td colSpan={6}>
+                    <EmptyState>Aucun paiement enregistré.</EmptyState>
                   </td>
                 </tr>
               )}

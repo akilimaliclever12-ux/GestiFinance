@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMySchools } from "@/lib/data";
 import { FeeTypeForm, FeeScheduleForm, type FeeTypeRef } from "./FeeForms";
+import { cardCls } from "@/lib/ui";
 import type { CurrencyCode } from "@/lib/types";
 
 type FeeTypeRow = {
@@ -60,10 +61,7 @@ export default async function FeesPage() {
 
       <div className="space-y-4">
         {feeTypes.map((ft) => (
-          <div
-            key={ft.id}
-            className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
-          >
+          <div key={ft.id} className={cardCls}>
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold">
                 {ft.name}{" "}

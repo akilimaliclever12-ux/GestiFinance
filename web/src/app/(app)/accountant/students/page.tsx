@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useOffline } from "@/lib/offline/OfflineProvider";
 import { listSchools, listStudents, createStudentLocal } from "@/lib/offline/repo";
+import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
+import { EmptyState } from "@/components/EmptyState";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -57,10 +59,7 @@ export default function StudentsPage() {
         </Link>
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
-      >
+      <form onSubmit={onSubmit} className={cardCls}>
         <h2 className="mb-3 text-sm font-semibold">Nouvel élève</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {schools.length > 1 && (
@@ -99,27 +98,27 @@ export default function StudentsPage() {
       />
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
-          <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
+        <table className={`${tableCls} min-w-[640px]`}>
+          <thead className={theadCls}>
             <tr>
-              <th className="px-4 py-2">Matricule</th>
-              <th className="px-4 py-2">Nom complet</th>
-              <th className="px-4 py-2">Classe</th>
-              <th className="px-4 py-2">Section</th>
-              {schools.length > 1 && <th className="px-4 py-2">École</th>}
+              <th className={thCls}>Matricule</th>
+              <th className={thCls}>Nom complet</th>
+              <th className={thCls}>Classe</th>
+              <th className={thCls}>Section</th>
+              {schools.length > 1 && <th className={thCls}>École</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+          <tbody className={tbodyCls}>
             {students.map((s) => (
-              <tr key={s.id}>
-                <td className="px-4 py-2 font-mono text-xs">{s.matricule}</td>
-                <td className="px-4 py-2">
+              <tr key={s.id} className={rowCls}>
+                <td className={`${tdCls} font-mono text-xs`}>{s.matricule}</td>
+                <td className={tdCls}>
                   {s.last_name} {s.first_name}
                 </td>
-                <td className="px-4 py-2">{s.class_name ?? "—"}</td>
-                <td className="px-4 py-2">{s.section ?? "—"}</td>
+                <td className={tdCls}>{s.class_name ?? "—"}</td>
+                <td className={tdCls}>{s.section ?? "—"}</td>
                 {schools.length > 1 && (
-                  <td className="px-4 py-2 text-xs text-neutral-500">
+                  <td className={`${tdCls} text-xs text-neutral-500`}>
                     {schoolName.get(s.school_id) ?? "—"}
                   </td>
                 )}
@@ -127,8 +126,8 @@ export default function StudentsPage() {
             ))}
             {students.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-4 text-neutral-500">
-                  Aucun élève. Ajoutez-en un ci-dessus ou importez un fichier.
+                <td colSpan={5}>
+                  <EmptyState>Aucun élève. Ajoutez-en un ci-dessus ou importez un fichier.</EmptyState>
                 </td>
               </tr>
             )}

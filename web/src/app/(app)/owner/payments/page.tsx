@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { CancelPaymentButton } from "./CancelPaymentButton";
+import { tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
+import { EmptyState } from "@/components/EmptyState";
 import type { CurrencyCode } from "@/lib/types";
 
 type PayRow = {
@@ -47,46 +49,46 @@ export default async function OwnerPaymentsPage() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
-          <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
+        <table className={`${tableCls} min-w-[820px]`}>
+          <thead className={theadCls}>
             <tr>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-4 py-2">École</th>
-              <th className="px-4 py-2">Élève</th>
-              <th className="px-4 py-2">Frais</th>
-              <th className="px-4 py-2">Bordereau</th>
-              <th className="px-4 py-2">Montant</th>
-              <th className="px-4 py-2">Reçu</th>
-              <th className="px-4 py-2">Action</th>
+              <th className={thCls}>Date</th>
+              <th className={thCls}>École</th>
+              <th className={thCls}>Élève</th>
+              <th className={thCls}>Frais</th>
+              <th className={thCls}>Bordereau</th>
+              <th className={thCls}>Montant</th>
+              <th className={thCls}>Reçu</th>
+              <th className={thCls}>Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+          <tbody className={tbodyCls}>
             {rows.map((p) => {
               const isCancelled = cancelled.has(p.id);
               return (
-                <tr key={p.id} className={isCancelled ? "opacity-50" : ""}>
-                  <td className="px-4 py-2">{p.paid_at}</td>
-                  <td className="px-4 py-2 text-xs text-neutral-500">
+                <tr key={p.id} className={`${rowCls} ${isCancelled ? "opacity-50" : ""}`}>
+                  <td className={`${tdCls} whitespace-nowrap`}>{p.paid_at}</td>
+                  <td className={`${tdCls} text-xs text-neutral-500`}>
                     {p.schools?.name ?? "—"}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className={tdCls}>
                     {p.students
                       ? `${p.students.last_name} ${p.students.first_name}`
                       : "—"}
                   </td>
-                  <td className="px-4 py-2">{p.fee_types?.name ?? "—"}</td>
-                  <td className="px-4 py-2 font-mono text-xs">
+                  <td className={tdCls}>{p.fee_types?.name ?? "—"}</td>
+                  <td className={`${tdCls} font-mono text-xs`}>
                     {p.bordereau_no ?? "—"}
                   </td>
-                  <td className="px-4 py-2 font-medium">
+                  <td className={`${tdCls} font-medium`}>
                     {money(p.amount, p.currency)}
                   </td>
-                  <td className="px-4 py-2">
-                    <Link href={`/receipt/${p.id}`} className="text-brand hover:underline">
+                  <td className={tdCls}>
+                    <Link href={`/receipt/${p.id}`} className="font-medium text-brand hover:underline">
                       Reçu
                     </Link>
                   </td>
-                  <td className="px-4 py-2">
+                  <td className={tdCls}>
                     {isCancelled ? (
                       <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
                         Annulé
@@ -100,8 +102,8 @@ export default async function OwnerPaymentsPage() {
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-4 text-neutral-500">
-                  Aucun paiement.
+                <td colSpan={8}>
+                  <EmptyState>Aucun paiement.</EmptyState>
                 </td>
               </tr>
             )}

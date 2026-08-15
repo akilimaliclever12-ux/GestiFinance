@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { CancelActionButton } from "./CancelActionButton";
+import { tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
+import { EmptyState } from "@/components/EmptyState";
 import type { CurrencyCode } from "@/lib/types";
 
 const money = (n: number, c: string) =>
@@ -125,23 +127,23 @@ export default async function HistoryPage() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
-          <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
+        <table className={`${tableCls} min-w-[900px]`}>
+          <thead className={theadCls}>
             <tr>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-4 py-2">Type</th>
-              <th className="px-4 py-2">École</th>
-              <th className="px-4 py-2">Détail</th>
-              <th className="px-4 py-2 text-right">Montant</th>
-              <th className="px-4 py-2">Statut</th>
-              <th className="px-4 py-2">Action</th>
+              <th className={thCls}>Date</th>
+              <th className={thCls}>Type</th>
+              <th className={thCls}>École</th>
+              <th className={thCls}>Détail</th>
+              <th className={`${thCls} text-right`}>Montant</th>
+              <th className={thCls}>Statut</th>
+              <th className={thCls}>Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+          <tbody className={tbodyCls}>
             {actions.map((a) => (
-              <tr key={`${a.kind}-${a.id}`} className={a.cancelled ? "bg-red-50/40 dark:bg-red-950/10" : ""}>
-                <td className="px-4 py-2 whitespace-nowrap">{a.paid_at}</td>
-                <td className="px-4 py-2">
+              <tr key={`${a.kind}-${a.id}`} className={`${rowCls} ${a.cancelled ? "bg-red-50/40 dark:bg-red-950/10" : ""}`}>
+                <td className={`${tdCls} whitespace-nowrap`}>{a.paid_at}</td>
+                <td className={tdCls}>
                   {a.kind === "payment" ? (
                     <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
                       Recette
@@ -152,8 +154,8 @@ export default async function HistoryPage() {
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-2 text-xs text-neutral-500">{a.school}</td>
-                <td className="px-4 py-2">
+                <td className={`${tdCls} text-xs text-neutral-500`}>{a.school}</td>
+                <td className={tdCls}>
                   <span className={a.cancelled ? "line-through decoration-red-400" : ""}>{a.label}</span>
                   {a.cancelled && a.cancelReason && (
                     <span className="mt-0.5 block text-[11px] text-red-600">
@@ -161,11 +163,11 @@ export default async function HistoryPage() {
                     </span>
                   )}
                 </td>
-                <td className={`px-4 py-2 text-right font-medium ${a.cancelled ? "text-neutral-400 line-through" : a.kind === "expense" ? "text-orange-700 dark:text-orange-400" : ""}`}>
+                <td className={`${tdCls} text-right font-medium ${a.cancelled ? "text-neutral-400 line-through" : a.kind === "expense" ? "text-red-600 dark:text-red-400" : ""}`}>
                   {a.kind === "expense" ? "−" : ""}
                   {money(a.amount, a.currency)}
                 </td>
-                <td className="px-4 py-2">
+                <td className={tdCls}>
                   {a.cancelled ? (
                     <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
                       Annulé
@@ -176,15 +178,15 @@ export default async function HistoryPage() {
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-2">
+                <td className={tdCls}>
                   {!a.cancelled && <CancelActionButton kind={a.kind} id={a.id} />}
                 </td>
               </tr>
             ))}
             {actions.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-4 text-neutral-500">
-                  Aucune action pour le moment.
+                <td colSpan={7}>
+                  <EmptyState>Aucune action pour le moment.</EmptyState>
                 </td>
               </tr>
             )}

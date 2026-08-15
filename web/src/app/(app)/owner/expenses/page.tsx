@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { CancelExpenseButton } from "./CancelExpenseButton";
+import { tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
+import { EmptyState } from "@/components/EmptyState";
 import { PAYMENT_METHOD_LABELS, type CurrencyCode, type PaymentMethod } from "@/lib/types";
 
 type ExpRow = {
@@ -45,32 +47,32 @@ export default async function OwnerExpensesPage() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
-          <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
+        <table className={`${tableCls} min-w-[820px]`}>
+          <thead className={theadCls}>
             <tr>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-4 py-2">École</th>
-              <th className="px-4 py-2">Catégorie</th>
-              <th className="px-4 py-2">Bénéficiaire</th>
-              <th className="px-4 py-2">Mode</th>
-              <th className="px-4 py-2">Montant</th>
-              <th className="px-4 py-2">Action</th>
+              <th className={thCls}>Date</th>
+              <th className={thCls}>École</th>
+              <th className={thCls}>Catégorie</th>
+              <th className={thCls}>Bénéficiaire</th>
+              <th className={thCls}>Mode</th>
+              <th className={thCls}>Montant</th>
+              <th className={thCls}>Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+          <tbody className={tbodyCls}>
             {rows.map((e) => {
               const isCancelled = cancelled.has(e.id);
               return (
-                <tr key={e.id} className={isCancelled ? "opacity-50" : ""}>
-                  <td className="px-4 py-2">{e.paid_at}</td>
-                  <td className="px-4 py-2 text-xs text-neutral-500">{e.schools?.name ?? "—"}</td>
-                  <td className="px-4 py-2">{e.expense_categories?.name ?? "—"}</td>
-                  <td className="px-4 py-2">{e.beneficiary ?? "—"}</td>
-                  <td className="px-4 py-2 text-xs text-neutral-500">
+                <tr key={e.id} className={`${rowCls} ${isCancelled ? "opacity-50" : ""}`}>
+                  <td className={`${tdCls} whitespace-nowrap`}>{e.paid_at}</td>
+                  <td className={`${tdCls} text-xs text-neutral-500`}>{e.schools?.name ?? "—"}</td>
+                  <td className={tdCls}>{e.expense_categories?.name ?? "—"}</td>
+                  <td className={tdCls}>{e.beneficiary ?? "—"}</td>
+                  <td className={`${tdCls} text-xs text-neutral-500`}>
                     {e.payment_method ? PAYMENT_METHOD_LABELS[e.payment_method] : "—"}
                   </td>
-                  <td className="px-4 py-2 font-medium">{money(e.amount, e.currency)}</td>
-                  <td className="px-4 py-2">
+                  <td className={`${tdCls} font-medium text-red-600 dark:text-red-400`}>{money(e.amount, e.currency)}</td>
+                  <td className={tdCls}>
                     {isCancelled ? (
                       <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
                         Annulée
@@ -84,8 +86,8 @@ export default async function OwnerExpensesPage() {
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-4 text-neutral-500">
-                  Aucune dépense.
+                <td colSpan={7}>
+                  <EmptyState>Aucune dépense.</EmptyState>
                 </td>
               </tr>
             )}

@@ -18,7 +18,7 @@ export function AppHeader({
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <Logo size={30} />
-          <span className="hidden text-base font-bold tracking-tight text-brand sm:inline">
+          <span className="font-display hidden text-base font-bold text-brand sm:inline">
             GestiFinance
           </span>
           <span className="shrink-0 rounded-full bg-brand-light px-2 py-0.5 text-xs font-medium text-brand dark:bg-brand/15">

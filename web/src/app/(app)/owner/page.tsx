@@ -84,7 +84,7 @@ export default async function OwnerDashboard() {
                 {yearNet.map((n, i) => (
                   <span
                     key={n.c}
-                    className={`tabular-nums font-bold ${i === 0 ? "text-3xl sm:text-4xl" : "text-lg text-white/80"}`}
+                    className={`font-display tabular-nums font-bold ${i === 0 ? "text-3xl sm:text-4xl" : "text-lg text-white/80"}`}
                   >
                     {money(n.net, n.c)}
                   </span>
@@ -174,7 +174,7 @@ function Stat({
       </div>
       <div className="min-w-0">
         <p className="truncate text-xs text-neutral-500">{label}</p>
-        <p className={`text-3xl font-bold tabular-nums ${t.text}`}>{value}</p>
+        <p className={`font-display text-3xl font-bold tabular-nums ${t.text}`}>{value}</p>
       </div>
     </div>
   );
@@ -220,7 +220,7 @@ function TresorerieCard({
                 </div>
                 <div className="mt-1.5 flex items-center justify-between border-t border-neutral-200 pt-1.5 dark:border-neutral-700">
                   <span className="text-xs font-semibold">Solde · {c}</span>
-                  <span className={`text-base font-bold tabular-nums ${net >= 0 ? "text-brand" : "text-red-600"}`}>
+                  <span className={`font-display text-base font-bold tabular-nums ${net >= 0 ? "text-brand" : "text-red-600"}`}>
                     {money(net, c)}
                   </span>
                 </div>

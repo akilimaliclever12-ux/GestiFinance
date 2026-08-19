@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { login } from "./actions";
 import { Logo } from "@/components/Logo";
 
@@ -74,6 +75,13 @@ export default function LoginPage() {
             {pending ? "Connexion…" : "Se connecter"}
           </button>
         </form>
+
+        <p className="mt-5 text-center text-sm text-neutral-500">
+          Pas encore d&apos;espace ?{" "}
+          <Link href="/signup" className="font-medium text-brand hover:underline">
+            Créer un espace
+          </Link>
+        </p>
       </div>
 
       <p className="absolute inset-x-0 bottom-4 text-center text-xs text-neutral-400">

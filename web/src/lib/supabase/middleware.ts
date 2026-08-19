@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { HOME_BY_ROLE, type AppRole } from "@/lib/types";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
 
 /**
  * Rafraîchit la session Supabase et applique la protection de routes :
@@ -58,8 +58,8 @@ export async function updateSession(request: NextRequest) {
     const role = profile?.role as AppRole | undefined;
     const home = role ? HOME_BY_ROLE[role] : "/login";
 
-    // Authentifié sur /login ou racine → son tableau de bord
-    if (role && (path === "/login" || path === "/")) {
+    // Authentifié sur /login, /signup ou racine → son tableau de bord
+    if (role && (path === "/login" || path === "/signup" || path === "/")) {
       const url = request.nextUrl.clone();
       url.pathname = home;
       return NextResponse.redirect(url);

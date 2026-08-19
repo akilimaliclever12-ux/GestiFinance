@@ -148,11 +148,11 @@ export default async function OwnerDashboard() {
   );
 }
 
-const TONES: Record<string, { bg: string; text: string }> = {
-  brand: { bg: "bg-brand-light text-brand dark:bg-brand/15", text: "text-foreground" },
-  ok: { bg: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50", text: "text-emerald-600" },
-  bad: { bg: "bg-red-50 text-red-600 dark:bg-red-950/50", text: "text-red-600" },
-  muted: { bg: "bg-neutral-100 text-neutral-400 dark:bg-neutral-800", text: "text-foreground" },
+const TONES: Record<string, { border: string; value: string; icon: string }> = {
+  brand: { border: "border-brand", value: "text-brand-dark dark:text-brand", icon: "text-brand" },
+  ok: { border: "border-emerald-500", value: "text-brand-dark dark:text-brand", icon: "text-emerald-600" },
+  bad: { border: "border-accent-red", value: "text-accent-red", icon: "text-accent-red" },
+  muted: { border: "border-neutral-300 dark:border-neutral-700", value: "text-brand-dark dark:text-neutral-200", icon: "text-neutral-400" },
 };
 
 function Stat({
@@ -168,14 +168,12 @@ function Stat({
 }) {
   const t = TONES[tone];
   return (
-    <div className={cardCls + " flex items-center gap-3"}>
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${t.bg}`}>
-        {icon}
+    <div className={`rounded-xl border-l-4 ${t.border} bg-white p-4 shadow-sm dark:bg-neutral-900`}>
+      <div className="flex items-start justify-between">
+        <p className={`font-display text-3xl font-extrabold tabular-nums ${t.value}`}>{value}</p>
+        <span className={`${t.icon} opacity-70`}>{icon}</span>
       </div>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-neutral-500">{label}</p>
-        <p className={`font-display text-3xl font-bold tabular-nums ${t.text}`}>{value}</p>
-      </div>
+      <p className="mt-0.5 text-sm text-neutral-500">{label}</p>
     </div>
   );
 }

@@ -11,10 +11,10 @@ export function SyncStatus() {
   if (!enabled) return null;
 
   const dotColor = !online
-    ? "bg-amber-500"
+    ? "bg-white"
     : pending > 0 || syncing
-      ? "bg-blue-500"
-      : "bg-emerald-500";
+      ? "bg-accent-yellow"
+      : "bg-emerald-300";
 
   const label = !online
     ? "Hors-ligne"
@@ -33,7 +33,7 @@ export function SyncStatus() {
           ? "Cliquer pour synchroniser"
           : "Hors-ligne : les saisies seront envoyées au retour du réseau"
       }
-      className="flex items-center gap-1.5 rounded-full border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-default disabled:hover:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+      className="flex items-center gap-1.5 rounded-full border border-white/40 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-white/10 disabled:cursor-default disabled:hover:bg-transparent"
     >
       <span className={`h-2 w-2 rounded-full ${dotColor} ${syncing ? "animate-pulse" : ""}`} />
       {label}

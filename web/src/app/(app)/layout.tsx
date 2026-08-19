@@ -41,9 +41,7 @@ export default async function AppLayout({
       canPayments={profile.can_payments}
       canExpenses={profile.can_expenses}
     >
-      <div className="relative min-h-screen bg-app">
-        {/* Halo de marque discret en haut de page */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-brand/[0.07] to-transparent dark:from-brand/[0.10]" />
+      <div className="min-h-screen bg-app">
         <AppHeader
           roleLabel={ROLE_LABELS[profile.role]}
           displayName={profile.full_name ?? email ?? ""}

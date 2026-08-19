@@ -2,9 +2,9 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  /* Canvas de l'application (distinct des cartes → relief) */
-  --app-bg: #f3f5f9;
+  --foreground: #1f2937;
+  /* Canvas de l'application (gris GestiEcole → relief des cartes) */
+  --app-bg: #f4f6f9;
 }
 
 @theme inline {
@@ -12,16 +12,16 @@
   --color-foreground: var(--foreground);
   --color-app: var(--app-bg);
 
-  /* Typographie : Manrope (corps) + Space Grotesk (titres & montants) */
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-space), var(--font-manrope), sans-serif;
+  /* Typographie GestiEcole : Inter (corps) + Poppins (titres & montants) */
+  --font-sans: var(--font-inter), "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), var(--font-inter), sans-serif;
 
-  /* Palette de marque GestiEcole / GestiFinance — couleurs du drapeau RDC */
-  --color-brand: #1668e3; /* bleu principal */
-  --color-brand-dark: #0e4fb0; /* survol / actif */
-  --color-brand-light: #e8f1fe; /* fond teinté */
-  --color-accent-yellow: #f7c21b; /* étoile */
-  --color-accent-red: #ea3324; /* accent */
+  /* Palette GestiEcole — bleu ciel RDC + jaune + rouge */
+  --color-brand: #0b6fb8; /* bleu principal */
+  --color-brand-dark: #084c7d; /* survol / actif */
+  --color-brand-light: #e6f0f8; /* fond teinté */
+  --color-accent-yellow: #f7c948; /* jaune drapeau */
+  --color-accent-red: #ce1126; /* rouge drapeau */
 }
 
 @media (prefers-color-scheme: dark) {

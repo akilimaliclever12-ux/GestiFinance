@@ -191,6 +191,18 @@ export async function createPaymentLocal(
       return { error: `Bordereau n°${input.bordereau_no} déjà enregistré (anti-doublon).` };
   }
 
+  // Plafond : on ne peut pas payer plus que le reste dû pour ce frais.
+  const ctxData = await getStudentFeeContext(input.student_id);
+  const fee = ctxData?.fees.find((f) => f.fee_type_id === input.fee_type_id);
+  if (fee) {
+    if (fee.balance <= 0)
+      return { error: "Ce frais est déjà entièrement payé (aucun montant dû)." };
+    if (input.amount > fee.balance + 0.001)
+      return {
+        error: `Le montant dépasse le reste dû. Maximum : ${new Intl.NumberFormat("fr-FR").format(fee.balance)} ${fee.currency}.`,
+      };
+  }
+
   const row: PaymentEventRow = {
     id: uuid(),
     tenant_id: ctx.tenantId,

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { createFeeType, createFeeSchedule } from "../actions";
 import { useToastOnSuccess } from "@/components/Toast";
 import { cardCls } from "@/lib/ui";
+import { CLASSES } from "@/lib/classes";
 import type { SchoolRef } from "@/lib/data";
 import type { CurrencyCode } from "@/lib/types";
 
@@ -103,11 +104,12 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
             </option>
           ))}
         </select>
-        <input
-          name="class_name"
-          placeholder="Classe (vide = toutes)"
-          className={inputCls}
-        />
+        <select name="class_name" className={inputCls} defaultValue="">
+          <option value="">Toutes les classes</option>
+          {CLASSES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
         <input
           name="amount_expected"
           type="number"

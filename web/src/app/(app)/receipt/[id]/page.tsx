@@ -20,7 +20,7 @@ export default async function ReceiptPage({
     .select(
       "id, bordereau_no, amount, currency, paid_at, created_at, note, event_type, " +
         "students(matricule, last_name, first_name, class_name, section), " +
-        "fee_types(name), banks(name), schools(name, address)",
+        "fee_types(name), banks(name), schools(name, official_name, address, logo_url)",
     )
     .eq("id", id)
     .eq("event_type", "payment")
@@ -53,7 +53,12 @@ export default async function ReceiptPage({
     } | null;
     fee_types: { name: string } | null;
     banks: { name: string } | null;
-    schools: { name: string; address: string | null } | null;
+    schools: {
+      name: string;
+      official_name: string | null;
+      address: string | null;
+      logo_url: string | null;
+    } | null;
   };
 
   const receiptNo = pay.bordereau_no || pay.id.slice(0, 8).toUpperCase();
@@ -71,10 +76,15 @@ export default async function ReceiptPage({
       <div className="rounded-xl border border-neutral-300 bg-white p-8 text-neutral-900 print:border-0 print:p-0">
         <header className="flex items-start justify-between border-b border-neutral-200 pb-4">
           <div className="flex items-center gap-3">
-            <Logo size={48} />
+            {pay.schools?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={pay.schools.logo_url} alt="" className="h-14 w-14 object-contain" />
+            ) : (
+              <Logo size={48} />
+            )}
             <div>
               <p className="text-lg font-bold text-brand">
-                {pay.schools?.name ?? "École"}
+                {pay.schools?.official_name || pay.schools?.name || "École"}
               </p>
               {pay.schools?.address && (
                 <p className="text-xs text-neutral-500">{pay.schools.address}</p>

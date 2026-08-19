@@ -224,11 +224,17 @@ export default function PaymentsPage() {
                   type="number"
                   min="0"
                   step="0.01"
+                  max={selectedFee ? selectedFee.balance : undefined}
                   className={inputCls}
                   required
                   defaultValue={selectedFee && selectedFee.balance > 0 ? selectedFee.balance : ""}
                   key={feeTypeId}
                 />
+                {selectedFee && (
+                  <p className="mt-1 text-[11px] text-neutral-400">
+                    Maximum : {new Intl.NumberFormat("fr-FR").format(selectedFee.balance)} {selectedFee.currency}
+                  </p>
+                )}
               </div>
 
               <div>

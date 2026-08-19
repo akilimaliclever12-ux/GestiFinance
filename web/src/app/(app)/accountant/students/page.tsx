@@ -8,6 +8,7 @@ import { listSchools, listStudents, createStudentLocal } from "@/lib/offline/rep
 import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/components/Toast";
+import { CLASSES, SECTIONS } from "@/lib/classes";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -77,8 +78,18 @@ export default function StudentsPage() {
           <input name="matricule" placeholder="Matricule *" className={inputCls} required />
           <input name="last_name" placeholder="Nom *" className={inputCls} required />
           <input name="first_name" placeholder="Prénom *" className={inputCls} required />
-          <input name="class_name" placeholder="Classe" className={inputCls} />
-          <input name="section" placeholder="Section" className={inputCls} />
+          <select name="class_name" className={inputCls} defaultValue="">
+            <option value="">Classe…</option>
+            {CLASSES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <input name="section" placeholder="Section" className={inputCls} list="sections-list" />
+          <datalist id="sections-list">
+            {SECTIONS.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
         </div>
         <div className="mt-3 flex items-center gap-3">
           <button

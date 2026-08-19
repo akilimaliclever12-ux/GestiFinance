@@ -7,6 +7,25 @@ import { importStudents } from "../../actions";
 import type { ImportRow } from "@/lib/types";
 import type { SchoolRef } from "@/lib/data";
 import { useOffline } from "@/lib/offline/OfflineProvider";
+import { CLASSES, normalizeClass } from "@/lib/classes";
+
+function downloadTemplate() {
+  const example = [
+    { matricule: "E-0001", nom: "Kabila", prenom: "Joseph", classe: "6ème Primaire", section: "" },
+    { matricule: "E-0002", nom: "Mwamba", prenom: "Grâce", classe: "1ère Humanités", section: "Scientifique" },
+  ];
+  const ws = XLSX.utils.json_to_sheet(example, {
+    header: ["matricule", "nom", "prenom", "classe", "section"],
+  });
+  const wsClasses = XLSX.utils.aoa_to_sheet([
+    ["Classes valides (copiez exactement)"],
+    ...CLASSES.map((c) => [c]),
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Élèves");
+  XLSX.utils.book_append_sheet(wb, wsClasses, "Classes");
+  XLSX.writeFile(wb, "modele_eleves_gestifinance.xlsx");
+}
 
 const inputCls =
   "rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -31,7 +50,7 @@ function mapRow(raw: Record<string, unknown>): ImportRow | null {
     matricule: get("matricule", "mat", "numero", "n°", "no"),
     last_name: get("nom", "last_name", "nom de famille"),
     first_name: get("prenom", "first_name", "post-nom", "postnom"),
-    class_name: get("classe", "class", "class_name") || null,
+    class_name: normalizeClass(get("classe", "class", "class_name")),
     section: get("section", "option") || null,
   };
   if (!row.matricule || !row.last_name || !row.first_name) return null;
@@ -99,8 +118,17 @@ export function ImportClient({ schools }: { schools: SchoolRef[] }) {
           <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">
             matricule, nom, prenom, classe, section
           </code>
-          . La casse et les accents des en-têtes sont ignorés.
+          . La casse et les accents des en-têtes sont ignorés. Utilisez le modèle
+          pour éviter les erreurs (la 2ᵉ feuille liste les classes valides).
         </p>
+
+        <button
+          type="button"
+          onClick={downloadTemplate}
+          className="mb-3 rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand-light dark:hover:bg-brand/10"
+        >
+          ⬇ Télécharger le modèle Excel
+        </button>
 
         <div className="flex flex-wrap items-center gap-3">
           {schools.length > 1 && (

@@ -1,29 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMySchools } from "@/lib/data";
 import { Letterhead, type SchoolLetterhead } from "@/components/Letterhead";
-import { PrintButton } from "./PrintButton";
+import { PrintButton } from "@/components/PrintButton";
 import { ExportButtons } from "./ExportButtons";
+import { fetchAll } from "@/lib/fetch-all";
 import { PAYMENT_METHOD_LABELS, type CurrencyCode, type PaymentMethod } from "@/lib/types";
 import type { Aggregate, ExpenseDetail, Kind, Line, PaymentDetail, ReportData } from "./report-types";
 
 const money = (n: number, c: string) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 const pad = (n: number) => String(n).padStart(2, "0");
-
-const PAGE = 1000; // limite de lignes par requête côté Supabase
-
-/** Récupère toutes les lignes d'une requête, par pages successives. */
-async function fetchAll<T>(
-  query: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
-): Promise<T[]> {
-  const out: T[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await query(from, from + PAGE - 1);
-    if (error) throw error;
-    out.push(...(data ?? []));
-    if (!data || data.length < PAGE) return out;
-  }
-}
 
 function aggregate(rows: Line[]): Aggregate {
   const byKey = new Map<string, Line>();

@@ -19,7 +19,7 @@ Logiciel de **gestion des finances scolaires**, Offline-First, pour les écoles 
 | **P4** | Dashboard promoteur : recettes par devise (jour/mois/année) + solvables/non-solvables en temps réel | ✅ Fait |
 | **P5** | Dépenses (livre de caisse) : catégories + sorties append-only + annulation autorisée ; dashboard Recettes/Dépenses/**Solde net** par devise | ✅ Fait |
 | **P5** | Rapports imprimables (en-tête d'école) + export **Excel** (synthèse + détail des opérations) et **PDF** (synthèse + annexes), générés dans le navigateur | ✅ Fait |
-| P6 | Vue directeur (statut sans montants) | Ébauche (P0) |
+| **P6** | Vue directeur : statut en ordre / non en ordre **sans montants**, synthèse par classe, filtres (classe, statut, recherche), liste imprimable avec en-tête d'école | ✅ Fait |
 
 ## Structure
 
@@ -27,7 +27,7 @@ Logiciel de **gestion des finances scolaires**, Offline-First, pour les écoles 
 GestiFinance/
 ├── docs/                  Documents fondateurs (PRD, schéma, sync)
 ├── supabase/
-│   ├── migrations/        8 migrations SQL (schéma + RLS)
+│   ├── migrations/        15 migrations SQL (schéma + RLS)
 │   └── seed.sql           Tenant pilote « ECOBU »
 └── web/                   Application Next.js 16 (App Router, PWA à venir)
 ```
@@ -37,7 +37,7 @@ GestiFinance/
 ### 1. Créer le projet Supabase
 - Créez un projet sur [supabase.com](https://supabase.com).
 - Dans le **SQL Editor**, exécutez dans l'ordre les fichiers de
-  `supabase/migrations/` (0001 → 0008), puis `supabase/seed.sql`.
+  `supabase/migrations/` (0001 → 0015), puis `supabase/seed.sql`.
 
 ### 2. Créer le compte propriétaire ECOBU
 - Dashboard Supabase > **Authentication > Users > Add user** (email + mot de passe).

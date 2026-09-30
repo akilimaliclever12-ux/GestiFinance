@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
-import { PrintButton } from "./PrintButton";
+import { PrintButton } from "@/components/PrintButton";
 import type { CurrencyCode } from "@/lib/types";
 
 const money = (n: number, c: string) =>

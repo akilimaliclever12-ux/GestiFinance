@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useOffline } from "@/lib/offline/OfflineProvider";
@@ -20,7 +20,12 @@ const inputCls =
 const money = (n: number, c: string) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 
-export default function PaymentsPage() {
+export default function PaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ student?: string }>;
+}) {
+  const { student: preselect } = use(searchParams);
   const { ctx, flush, perms } = useOffline();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
 
@@ -53,6 +58,14 @@ export default function PaymentsPage() {
     setContext(c);
     setFeeTypeId(c?.fees[0]?.fee_type_id ?? "");
   }
+
+  // Élève présélectionné depuis sa fiche (?student=…)
+  useEffect(() => {
+    if (!preselect) return;
+    db.students.get(preselect).then((s) => {
+      if (s) void pick(s);
+    });
+  }, [preselect]);
 
   function resetForm() {
     setStudent(null);

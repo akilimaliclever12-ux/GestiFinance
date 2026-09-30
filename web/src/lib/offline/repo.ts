@@ -96,6 +96,134 @@ export async function getStudentFeeContext(
   };
 }
 
+// ============================================================
+// Fiche élève : frais (tranches + exigible), paiements, statut
+// ============================================================
+export interface Tranche {
+  amount: number;
+  due_date: string | null;
+  covered: number; // part couverte par les paiements (imputés par échéance)
+  is_due: boolean;
+}
+
+export interface FeeFile extends FeeStatus {
+  due_expected: number; // exigible à ce jour (tranches échues ou sans échéance)
+  is_in_order: boolean;
+  next_due: string | null; // prochaine échéance non encore couverte
+  tranches: Tranche[];
+}
+
+export interface StudentPayment {
+  id: string;
+  paid_at: string;
+  fee: string;
+  bank: string | null;
+  bordereau_no: string | null;
+  amount: number;
+  currency: CurrencyCode;
+  cancelled: boolean;
+  synced: boolean;
+}
+
+export interface StudentFile {
+  student: StudentRow;
+  school: string;
+  fees: FeeFile[];
+  payments: StudentPayment[];
+  is_in_order: boolean;
+}
+
+/** Même règle que la vue student_solvency_status (migration 0016). */
+export async function getStudentFile(studentId: string): Promise<StudentFile | null> {
+  const student = await db.students.get(studentId);
+  if (!student || student.deleted_at) return null;
+
+  const [school, feeTypes, schedules, banks, payAll, outbox] = await Promise.all([
+    db.schools.get(student.school_id),
+    db.fee_types.where("school_id").equals(student.school_id).toArray(),
+    db.fee_schedules.where("school_id").equals(student.school_id).toArray(),
+    db.banks.where("school_id").equals(student.school_id).toArray(),
+    db.payment_events.where("student_id").equals(studentId).toArray(),
+    db.outbox.toArray(),
+  ]);
+
+  const today = new Date().toLocaleDateString("sv-SE"); // AAAA-MM-JJ, heure locale
+  const effective = effectivePayments(payAll);
+
+  const fees: FeeFile[] = feeTypes
+    .filter((ft) => !ft.deleted_at)
+    .map((ft) => {
+      const own = schedules
+        .filter(
+          (s) =>
+            s.fee_type_id === ft.id &&
+            !s.deleted_at &&
+            (s.class_name == null || s.class_name === student.class_name),
+        )
+        // sans échéance d'abord, puis par date : ordre d'imputation des paiements
+        .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+      const paid = effective
+        .filter((p) => p.fee_type_id === ft.id)
+        .reduce((a, p) => a + Number(p.amount), 0);
+
+      let left = paid;
+      const tranches: Tranche[] = own.map((s) => {
+        const amount = Number(s.amount_expected);
+        const covered = Math.min(amount, Math.max(left, 0));
+        left -= covered;
+        return { amount, due_date: s.due_date, covered, is_due: !s.due_date || s.due_date <= today };
+      });
+
+      const expected = tranches.reduce((a, t) => a + t.amount, 0);
+      const due_expected = tranches.filter((t) => t.is_due).reduce((a, t) => a + t.amount, 0);
+      return {
+        fee_type_id: ft.id,
+        name: ft.name,
+        currency: ft.currency,
+        total_expected: expected,
+        total_paid: paid,
+        balance: expected - paid,
+        due_expected,
+        is_in_order: paid >= due_expected,
+        next_due: tranches.find((t) => t.covered < t.amount && t.due_date && !t.is_due)?.due_date ?? null,
+        tranches,
+      };
+    })
+    .filter((f) => f.tranches.length > 0 || f.total_paid > 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const cancelled = new Set(
+    payAll.filter((p) => p.event_type === "cancellation").map((p) => p.cancels_event_id),
+  );
+  const pending = new Set(
+    outbox.filter((o) => o.table === "payment_events").map((o) => o.payload.id as string),
+  );
+  const feeName = new Map(feeTypes.map((f) => [f.id, f.name]));
+  const bankName = new Map(banks.map((b) => [b.id, b.name]));
+  const payments: StudentPayment[] = payAll
+    .filter((p) => p.event_type === "payment")
+    .sort((a, b) => (a.paid_at === b.paid_at ? b.created_at.localeCompare(a.created_at) : b.paid_at.localeCompare(a.paid_at)))
+    .map((p) => ({
+      id: p.id,
+      paid_at: p.paid_at,
+      fee: feeName.get(p.fee_type_id) ?? "—",
+      bank: p.bank_id ? (bankName.get(p.bank_id) ?? null) : null,
+      bordereau_no: p.bordereau_no,
+      amount: Number(p.amount),
+      currency: p.currency,
+      cancelled: cancelled.has(p.id),
+      synced: !pending.has(p.id),
+    }));
+
+  return {
+    student,
+    school: school?.name ?? "",
+    fees,
+    payments,
+    is_in_order: fees.every((f) => f.is_in_order),
+  };
+}
+
 export async function listRecentPayments(limit = 30) {
   const rows = await db.payment_events
     .where("event_type")

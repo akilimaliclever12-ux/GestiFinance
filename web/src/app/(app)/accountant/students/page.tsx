@@ -127,7 +127,9 @@ export default function StudentsPage() {
               <tr key={s.id} className={rowCls}>
                 <td className={`${tdCls} font-mono text-xs`}>{s.matricule}</td>
                 <td className={tdCls}>
-                  {s.last_name} {s.first_name}
+                  <Link href={`/accountant/students/${s.id}`} className="font-medium text-brand hover:underline">
+                    {s.last_name} {s.first_name}
+                  </Link>
                 </td>
                 <td className={tdCls}>{s.class_name ?? "—"}</td>
                 <td className={tdCls}>{s.section ?? "—"}</td>

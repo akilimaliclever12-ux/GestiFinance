@@ -110,7 +110,7 @@ export default async function ControllerDashboard({
       <div className="no-print">
         <h1 className="text-xl font-semibold">Contrôle de solvabilité</h1>
         <p className="text-sm text-neutral-500">
-          Statut des élèves pour l&apos;accès aux cours et aux examens — sans aucun montant.
+          Statut des élèves pour l&apos;accès aux cours et aux examens, selon les frais déjà échus — sans aucun montant.
         </p>
       </div>
 

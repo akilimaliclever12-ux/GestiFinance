@@ -87,7 +87,7 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
     >
       <h2 className="mb-3 text-sm font-semibold">Nouveau barème (montant attendu)</h2>
       <input type="hidden" name="school_id" value={schoolId} />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <select
           name="fee_type_id"
           className={inputCls}
@@ -119,7 +119,12 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
           className={inputCls}
           required
         />
-        <input name="due_date" type="date" className={inputCls} />
+        <label className="block">
+          <span className="mb-1 block text-xs text-neutral-500">
+            Échéance (vide = exigible tout de suite)
+          </span>
+          <input name="due_date" type="date" className={`w-full ${inputCls}`} />
+        </label>
       </div>
       <div className="mt-3 flex items-center gap-3">
         <button
@@ -128,6 +133,9 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
         >
           {pending ? "…" : "Ajouter le barème"}
         </button>
+        <span className="text-xs text-neutral-500">
+          Un élève n&apos;est « non en ordre » que pour les tranches dont l&apos;échéance est passée.
+        </span>
         {state?.error && <span className="text-sm text-red-600">{state.error}</span>}
         {state?.success && <span className="text-sm text-emerald-600">{state.success}</span>}
       </div>

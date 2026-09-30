@@ -2,18 +2,30 @@ import { createClient } from "@/lib/supabase/server";
 import { getMySchools } from "@/lib/data";
 import { Letterhead, type SchoolLetterhead } from "@/components/Letterhead";
 import { PrintButton } from "./PrintButton";
-import type { CurrencyCode } from "@/lib/types";
+import { ExportButtons } from "./ExportButtons";
+import { PAYMENT_METHOD_LABELS, type CurrencyCode, type PaymentMethod } from "@/lib/types";
+import type { Aggregate, ExpenseDetail, Kind, Line, PaymentDetail, ReportData } from "./report-types";
 
 const money = (n: number, c: string) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 const pad = (n: number) => String(n).padStart(2, "0");
 
-type Kind = "synthese" | "recettes" | "depenses";
-type Line = { label: string; currency: CurrencyCode; amount: number };
+const PAGE = 1000; // limite de lignes par requête côté Supabase
 
-function aggregate(
-  rows: { label: string; currency: CurrencyCode; amount: number }[],
-): { lines: Line[]; totals: Record<string, number> } {
+/** Récupère toutes les lignes d'une requête, par pages successives. */
+async function fetchAll<T>(
+  query: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await query(from, from + PAGE - 1);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if (!data || data.length < PAGE) return out;
+  }
+}
+
+function aggregate(rows: Line[]): Aggregate {
   const byKey = new Map<string, Line>();
   const totals: Record<string, number> = {};
   for (const r of rows) {
@@ -28,6 +40,27 @@ function aggregate(
     totals,
   };
 }
+
+type PaymentRow = {
+  id: string;
+  amount: number;
+  currency: CurrencyCode;
+  paid_at: string;
+  bordereau_no: string | null;
+  fee_types: { name: string } | null;
+  banks: { name: string } | null;
+  students: { matricule: string; first_name: string; last_name: string; class_name: string | null } | null;
+};
+type ExpenseRow = {
+  id: string;
+  amount: number;
+  currency: CurrencyCode;
+  paid_at: string;
+  beneficiary: string | null;
+  payment_method: PaymentMethod | null;
+  reference: string | null;
+  expense_categories: { name: string } | null;
+};
 
 export default async function ReportsPage({
   searchParams,
@@ -58,61 +91,108 @@ export default async function ReportsPage({
   // Données financières (annulations exclues, filtrées sur la période)
   const [payInRange, payCancels, expInRange, expCancels] = schoolId
     ? await Promise.all([
-        supabase
-          .from("payment_events")
-          .select("id, amount, currency, fee_types(name)")
-          .eq("school_id", schoolId)
-          .eq("event_type", "payment")
-          .gte("paid_at", from)
-          .lte("paid_at", to),
-        supabase
-          .from("payment_events")
-          .select("cancels_event_id")
-          .eq("school_id", schoolId)
-          .eq("event_type", "cancellation"),
-        supabase
-          .from("expense_events")
-          .select("id, amount, currency, expense_categories(name)")
-          .eq("school_id", schoolId)
-          .eq("event_type", "expense")
-          .gte("paid_at", from)
-          .lte("paid_at", to),
-        supabase
-          .from("expense_events")
-          .select("cancels_event_id")
-          .eq("school_id", schoolId)
-          .eq("event_type", "cancellation"),
+        fetchAll<PaymentRow>((a, b) =>
+          supabase
+            .from("payment_events")
+            .select(
+              "id, amount, currency, paid_at, bordereau_no, fee_types(name), banks(name), students(matricule, first_name, last_name, class_name)",
+            )
+            .eq("school_id", schoolId)
+            .eq("event_type", "payment")
+            .gte("paid_at", from)
+            .lte("paid_at", to)
+            .order("paid_at")
+            .order("id")
+            .range(a, b)
+            .overrideTypes<PaymentRow[], { merge: false }>(),
+        ),
+        fetchAll<{ cancels_event_id: string }>((a, b) =>
+          supabase
+            .from("payment_events")
+            .select("cancels_event_id")
+            .eq("school_id", schoolId)
+            .eq("event_type", "cancellation")
+            .order("id")
+            .range(a, b)
+            .overrideTypes<{ cancels_event_id: string }[], { merge: false }>(),
+        ),
+        fetchAll<ExpenseRow>((a, b) =>
+          supabase
+            .from("expense_events")
+            .select("id, amount, currency, paid_at, beneficiary, payment_method, reference, expense_categories(name)")
+            .eq("school_id", schoolId)
+            .eq("event_type", "expense")
+            .gte("paid_at", from)
+            .lte("paid_at", to)
+            .order("paid_at")
+            .order("id")
+            .range(a, b)
+            .overrideTypes<ExpenseRow[], { merge: false }>(),
+        ),
+        fetchAll<{ cancels_event_id: string }>((a, b) =>
+          supabase
+            .from("expense_events")
+            .select("cancels_event_id")
+            .eq("school_id", schoolId)
+            .eq("event_type", "cancellation")
+            .order("id")
+            .range(a, b)
+            .overrideTypes<{ cancels_event_id: string }[], { merge: false }>(),
+        ),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
+    : [[], [], [], []];
 
-  const payCancelled = new Set((payCancels.data ?? []).map((c) => c.cancels_event_id as string));
-  const expCancelled = new Set((expCancels.data ?? []).map((c) => c.cancels_event_id as string));
+  const payCancelled = new Set(payCancels.map((c) => c.cancels_event_id));
+  const expCancelled = new Set(expCancels.map((c) => c.cancels_event_id));
+  const pays = payInRange.filter((p) => !payCancelled.has(p.id));
+  const exps = expInRange.filter((e) => !expCancelled.has(e.id));
 
   const recettes = aggregate(
-    ((payInRange.data ?? []) as unknown as {
-      id: string;
-      amount: number;
-      currency: CurrencyCode;
-      fee_types: { name: string } | null;
-    }[])
-      .filter((p) => !payCancelled.has(p.id))
-      .map((p) => ({ label: p.fee_types?.name ?? "Autre", currency: p.currency, amount: Number(p.amount) })),
+    pays.map((p) => ({ label: p.fee_types?.name ?? "Autre", currency: p.currency, amount: Number(p.amount) })),
   );
   const depenses = aggregate(
-    ((expInRange.data ?? []) as unknown as {
-      id: string;
-      amount: number;
-      currency: CurrencyCode;
-      expense_categories: { name: string } | null;
-    }[])
-      .filter((e) => !expCancelled.has(e.id))
-      .map((e) => ({ label: e.expense_categories?.name ?? "Autre", currency: e.currency, amount: Number(e.amount) })),
+    exps.map((e) => ({ label: e.expense_categories?.name ?? "Autre", currency: e.currency, amount: Number(e.amount) })),
   );
 
   const currencies = [...new Set([...Object.keys(recettes.totals), ...Object.keys(depenses.totals)])];
 
   const title =
     type === "recettes" ? "RAPPORT DES RECETTES" : type === "depenses" ? "RAPPORT DES DÉPENSES" : "RAPPORT FINANCIER";
+
+  const payments: PaymentDetail[] = pays.map((p) => ({
+    date: p.paid_at,
+    matricule: p.students?.matricule ?? "",
+    student: p.students ? `${p.students.last_name} ${p.students.first_name}` : "",
+    className: p.students?.class_name ?? "",
+    fee: p.fee_types?.name ?? "Autre",
+    bank: p.banks?.name ?? "",
+    bordereau: p.bordereau_no ?? "",
+    amount: Number(p.amount),
+    currency: p.currency,
+  }));
+  const expenses: ExpenseDetail[] = exps.map((e) => ({
+    date: e.paid_at,
+    category: e.expense_categories?.name ?? "Autre",
+    beneficiary: e.beneficiary ?? "",
+    method: e.payment_method ? PAYMENT_METHOD_LABELS[e.payment_method] : "",
+    reference: e.reference ?? "",
+    amount: Number(e.amount),
+    currency: e.currency,
+  }));
+  const report: ReportData | null = school
+    ? {
+        school: school as SchoolLetterhead,
+        kind: type,
+        title,
+        from,
+        to,
+        recettes,
+        depenses,
+        currencies,
+        payments,
+        expenses,
+      }
+    : null;
 
   return (
     <div className="space-y-5">
@@ -147,11 +227,12 @@ export default async function ReportsPage({
             <input type="date" name="to" defaultValue={to} className={selectCls} />
           </label>
         </div>
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
             Générer
           </button>
           <PrintButton />
+          {report && <ExportButtons report={report} />}
         </div>
       </form>
 

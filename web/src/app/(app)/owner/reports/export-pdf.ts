@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
-import { frDate, reportFileName, type Aggregate, type ReportData } from "./report-types";
+import { frDate, periodLine, reportFileName, type Aggregate, type ReportData } from "./report-types";
 
 const BRAND: [number, number, number] = [22, 104, 227]; // #1668e3
 const MARGIN = 15;
@@ -118,10 +118,13 @@ export async function exportReportPdf(r: ReportData) {
   doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(20);
   doc.text(r.title, pageW / 2, y, { align: "center" });
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(90);
-  doc.text(`Période du ${frDate(r.from)} au ${frDate(r.to)}`, pageW / 2, y + 5, { align: "center" });
+  doc.text(t(periodLine(r)), pageW / 2, y + 5, { align: "center" });
   y += 14;
 
-  if (r.kind !== "depenses") y = aggregateTable(doc, y, "Recettes (par type de frais)", r.recettes, "");
+  if (r.kind !== "depenses") {
+    y = aggregateTable(doc, y, "Recettes (par type de frais)", r.recettes, "");
+    y = aggregateTable(doc, y, "Recettes (par banque)", r.parBanque, "");
+  }
   if (r.kind !== "recettes") y = aggregateTable(doc, y, "Dépenses (par catégorie)", r.depenses, "-");
 
   if (r.kind === "synthese") {

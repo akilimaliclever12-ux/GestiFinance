@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { frDate, reportFileName, type Aggregate, type ReportData } from "./report-types";
+import { frDate, periodLine, reportFileName, type Aggregate, type ReportData } from "./report-types";
 
 const NUM_FMT = "#,##0.00";
 
@@ -30,10 +30,13 @@ export function exportReportExcel(r: ReportData) {
   const rows: (string | number)[][] = [
     [r.school.official_name || r.school.name],
     [r.title],
-    [`Période du ${frDate(r.from)} au ${frDate(r.to)}`],
+    [periodLine(r)],
     [],
   ];
-  if (withRecettes) rows.push(...aggregateRows("Recettes (par type de frais)", r.recettes));
+  if (withRecettes) {
+    rows.push(...aggregateRows("Recettes (par type de frais)", r.recettes));
+    rows.push(...aggregateRows("Recettes (par banque)", r.parBanque));
+  }
   if (withDepenses) rows.push(...aggregateRows("Dépenses (par catégorie)", r.depenses));
   if (r.kind === "synthese") {
     rows.push(["Solde net par devise"], ["Devise", "", "Solde"]);

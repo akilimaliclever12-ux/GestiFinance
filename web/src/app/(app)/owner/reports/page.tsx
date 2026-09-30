@@ -10,6 +10,7 @@ import type { Aggregate, ExpenseDetail, Kind, Line, PaymentDetail, ReportData } 
 const money = (n: number, c: string) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 const pad = (n: number) => String(n).padStart(2, "0");
+const NO_BANK = "Banque non renseignée";
 
 function aggregate(rows: Line[]): Aggregate {
   const byKey = new Map<string, Line>();
@@ -51,7 +52,7 @@ type ExpenseRow = {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ school?: string; from?: string; to?: string; type?: string }>;
+  searchParams: Promise<{ school?: string; from?: string; to?: string; type?: string; bank?: string }>;
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
@@ -61,24 +62,32 @@ export default async function ReportsPage({
   const schoolId = sp.school || schools[0]?.id || "";
   const from = sp.from || `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
   const to = sp.to || now.toISOString().slice(0, 10);
-  const type = (sp.type as Kind) || "synthese";
+  // En-tête de l'école + banques (pour le filtre)
+  const [{ data: school }, { data: bankRows }] = schoolId
+    ? await Promise.all([
+        supabase
+          .from("schools")
+          .select(
+            "name, official_name, header_top, sub_header, motto, address, phone, email, bp, logo_url",
+          )
+          .eq("id", schoolId)
+          .single(),
+        supabase.from("banks").select("id, name").eq("school_id", schoolId).is("deleted_at", null).order("name"),
+      ])
+    : [{ data: null }, { data: [] }];
+  const banks = (bankRows ?? []) as { id: string; name: string }[];
 
-  // En-tête de l'école
-  const { data: school } = schoolId
-    ? await supabase
-        .from("schools")
-        .select(
-          "name, official_name, header_top, sub_header, motto, address, phone, email, bp, logo_url",
-        )
-        .eq("id", schoolId)
-        .single()
-    : { data: null };
+  // Filtre banque : "" = toutes, "none" = non renseignée, sinon id (ignoré s'il n'est pas de cette école)
+  const bank = sp.bank === "none" || banks.some((b) => b.id === sp.bank) ? (sp.bank as string) : "";
+  const bankLabel = !bank ? null : bank === "none" ? NO_BANK : banks.find((b) => b.id === bank)!.name;
+  // Les dépenses n'ont pas de banque : avec un filtre banque, le rapport porte sur les recettes.
+  const type: Kind = bank ? "recettes" : (sp.type as Kind) || "synthese";
 
   // Données financières (annulations exclues, filtrées sur la période)
   const [payInRange, payCancels, expInRange, expCancels] = schoolId
     ? await Promise.all([
-        fetchAll<PaymentRow>((a, b) =>
-          supabase
+        fetchAll<PaymentRow>((a, b) => {
+          let q = supabase
             .from("payment_events")
             .select(
               "id, amount, currency, paid_at, bordereau_no, fee_types(name), banks(name), students(matricule, first_name, last_name, class_name)",
@@ -86,12 +95,11 @@ export default async function ReportsPage({
             .eq("school_id", schoolId)
             .eq("event_type", "payment")
             .gte("paid_at", from)
-            .lte("paid_at", to)
-            .order("paid_at")
-            .order("id")
-            .range(a, b)
-            .overrideTypes<PaymentRow[], { merge: false }>(),
-        ),
+            .lte("paid_at", to);
+          if (bank === "none") q = q.is("bank_id", null);
+          else if (bank) q = q.eq("bank_id", bank);
+          return q.order("paid_at").order("id").range(a, b).overrideTypes<PaymentRow[], { merge: false }>();
+        }),
         fetchAll<{ cancels_event_id: string }>((a, b) =>
           supabase
             .from("payment_events")
@@ -136,6 +144,9 @@ export default async function ReportsPage({
   const recettes = aggregate(
     pays.map((p) => ({ label: p.fee_types?.name ?? "Autre", currency: p.currency, amount: Number(p.amount) })),
   );
+  const parBanque = aggregate(
+    pays.map((p) => ({ label: p.banks?.name ?? NO_BANK, currency: p.currency, amount: Number(p.amount) })),
+  );
   const depenses = aggregate(
     exps.map((e) => ({ label: e.expense_categories?.name ?? "Autre", currency: e.currency, amount: Number(e.amount) })),
   );
@@ -172,7 +183,9 @@ export default async function ReportsPage({
         title,
         from,
         to,
+        bankLabel,
         recettes,
+        parBanque,
         depenses,
         currencies,
         payments,
@@ -185,7 +198,7 @@ export default async function ReportsPage({
       {/* Filtres */}
       <form method="get" className="no-print rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <h1 className="mb-3 text-lg font-semibold">Rapports</h1>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="block">
             <span className="mb-1 block text-xs text-neutral-500">École</span>
             <select name="school" defaultValue={schoolId} className={selectCls}>
@@ -205,6 +218,18 @@ export default async function ReportsPage({
             </select>
           </label>
           <label className="block">
+            <span className="mb-1 block text-xs text-neutral-500">Banque (recettes)</span>
+            <select name="bank" defaultValue={bank} className={selectCls}>
+              <option value="">Toutes les banques</option>
+              {banks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+              <option value="none">{NO_BANK}</option>
+            </select>
+          </label>
+          <label className="block">
             <span className="mb-1 block text-xs text-neutral-500">Du</span>
             <input type="date" name="from" defaultValue={from} className={selectCls} />
           </label>
@@ -220,6 +245,12 @@ export default async function ReportsPage({
           <PrintButton />
           {report && <ExportButtons report={report} />}
         </div>
+        {bank && sp.type && sp.type !== "recettes" && (
+          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+            Les dépenses ne sont pas rattachées à une banque : avec un filtre banque, le rapport
+            porte uniquement sur les recettes.
+          </p>
+        )}
       </form>
 
       {!school ? (
@@ -234,11 +265,15 @@ export default async function ReportsPage({
             <h2 className="text-base font-bold">{title}</h2>
             <p className="text-xs text-neutral-600">
               Période du {from} au {to}
+              {bankLabel && <> — Banque : {bankLabel}</>}
             </p>
           </div>
 
           {(type === "synthese" || type === "recettes") && (
-            <Section title="Recettes (par type de frais)" data={recettes} sign="" />
+            <>
+              <Section title="Recettes (par type de frais)" data={recettes} sign="" />
+              <Section title="Recettes (par banque)" data={parBanque} sign="" />
+            </>
           )}
           {(type === "synthese" || type === "depenses") && (
             <Section title="Dépenses (par catégorie)" data={depenses} sign="−" />

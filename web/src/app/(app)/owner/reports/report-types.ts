@@ -34,7 +34,9 @@ export type ReportData = {
   title: string;
   from: string;
   to: string;
+  bankLabel: string | null; // filtre banque appliqué aux recettes
   recettes: Aggregate;
+  parBanque: Aggregate;
   depenses: Aggregate;
   currencies: string[];
   payments: PaymentDetail[];
@@ -44,12 +46,20 @@ export type ReportData = {
 /** « 2026-09-30 » → « 30/09/2026 » */
 export const frDate = (iso: string) => iso.split("-").reverse().join("/");
 
-export const reportFileName = (r: ReportData, ext: string) => {
-  const slug = (r.school.name || "ecole")
+const slugify = (s: string) =>
+  s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "_")
     .replace(/^_|_$/g, "")
     .toLowerCase();
-  return `rapport_${r.kind}_${slug}_${r.from}_${r.to}.${ext}`;
+
+/** « Période du … au … » (+ banque si filtrée). */
+export const periodLine = (r: ReportData) =>
+  `Période du ${frDate(r.from)} au ${frDate(r.to)}` + (r.bankLabel ? ` — Banque : ${r.bankLabel}` : "");
+
+export const reportFileName = (r: ReportData, ext: string) => {
+  const slug = slugify(r.school.name || "ecole");
+  const bank = r.bankLabel ? `_${slugify(r.bankLabel)}` : "";
+  return `rapport_${r.kind}_${slug}${bank}_${r.from}_${r.to}.${ext}`;
 };

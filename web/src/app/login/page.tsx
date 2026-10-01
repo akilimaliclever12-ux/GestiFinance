@@ -90,6 +90,11 @@ export default function LoginPage() {
             {l.createSpace}
           </Link>
         </p>
+        <p className="mt-2 text-center text-sm">
+          <Link href="/parent" className="font-medium text-brand hover:underline">
+            {t.parent.login.parentLink}
+          </Link>
+        </p>
       </div>
 
       <p className="absolute inset-x-0 bottom-4 text-center text-xs text-neutral-400">

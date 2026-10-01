@@ -21,6 +21,19 @@ Logiciel de **gestion des finances scolaires**, Offline-First, pour les écoles 
 | **P5** | Rapports imprimables (en-tête d'école) + export **Excel** (synthèse + détail des opérations) et **PDF** (synthèse + annexes), générés dans le navigateur | ✅ Fait |
 | **P6** | Vue directeur : statut en ordre / non en ordre **sans montants**, synthèse par classe, filtres (classe, statut, recherche), liste imprimable avec en-tête d'école | ✅ Fait |
 
+## Espace parent
+
+Page publique **`/parent`** : le parent consulte, **sans compte**, la situation
+de son enfant (statut en ordre / non en ordre, frais par type, payé, reste,
+tranches et prochaine échéance — pas d'historique détaillé).
+- Le comptable génère un **code d'accès** depuis la fiche élève (carte « Accès
+  parent ») : copier le lien, partager sur WhatsApp, régénérer, désactiver.
+- Codes `XXXXX-XXXXX` (≈ 10^15 combinaisons, sans 0/O ni 1/I), un par élève.
+- Le parent peut suivre plusieurs enfants ; les codes restent sur son téléphone.
+- Côté base (migration 0017) : table `parent_access_codes` réservée au
+  promoteur/comptable (RLS) et fonction `parent_statement(code)` qui ne renvoie
+  que l'élève correspondant au code.
+
 ## Langues (FR / EN)
 
 L'interface et les documents (reçus, rapports PDF/Excel, listes imprimées) sont
@@ -35,7 +48,7 @@ zone) ; TypeScript vérifie que chaque texte français a son équivalent anglais
 GestiFinance/
 ├── docs/                  Documents fondateurs (PRD, schéma, sync)
 ├── supabase/
-│   ├── migrations/        16 migrations SQL (schéma + RLS)
+│   ├── migrations/        17 migrations SQL (schéma + RLS)
 │   └── seed.sql           Tenant pilote « ECOBU »
 └── web/                   Application Next.js 16 (App Router, PWA à venir)
 ```
@@ -45,7 +58,7 @@ GestiFinance/
 ### 1. Créer le projet Supabase
 - Créez un projet sur [supabase.com](https://supabase.com).
 - Dans le **SQL Editor**, exécutez dans l'ordre les fichiers de
-  `supabase/migrations/` (0001 → 0016), puis `supabase/seed.sql`.
+  `supabase/migrations/` (0001 → 0017), puis `supabase/seed.sql`.
 
 ### 2. Créer le compte propriétaire ECOBU
 - Dashboard Supabase > **Authentication > Users > Add user** (email + mot de passe).

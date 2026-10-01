@@ -3,6 +3,9 @@ import { enqueueInsert } from "./sync";
 import type { CurrencyCode, PaymentMethod } from "@/lib/types";
 import { currentLocale, currentMessages } from "@/i18n/client";
 import { formatMoney } from "@/i18n/format";
+import { computeFees, localToday, type FeeFile, type FeeStatus } from "@/lib/solvency";
+
+export type { FeeFile, FeeStatus, Tranche } from "@/lib/solvency";
 
 export interface Ctx {
   userId: string;
@@ -36,14 +39,6 @@ function effectivePayments(rows: PaymentEventRow[]): PaymentEventRow[] {
   return rows.filter((p) => p.event_type === "payment" && !cancelled.has(p.id));
 }
 
-export interface FeeStatus {
-  fee_type_id: string;
-  name: string;
-  currency: CurrencyCode;
-  total_expected: number;
-  total_paid: number;
-  balance: number;
-}
 
 export interface StudentFeeContext {
   school_id: string;
@@ -101,20 +96,6 @@ export async function getStudentFeeContext(
 // ============================================================
 // Fiche élève : frais (tranches + exigible), paiements, statut
 // ============================================================
-export interface Tranche {
-  amount: number;
-  due_date: string | null;
-  covered: number; // part couverte par les paiements (imputés par échéance)
-  is_due: boolean;
-}
-
-export interface FeeFile extends FeeStatus {
-  due_expected: number; // exigible à ce jour (tranches échues ou sans échéance)
-  is_in_order: boolean;
-  next_due: string | null; // prochaine échéance non encore couverte
-  tranches: Tranche[];
-}
-
 export interface StudentPayment {
   id: string;
   paid_at: string;
@@ -149,50 +130,26 @@ export async function getStudentFile(studentId: string): Promise<StudentFile | n
     db.outbox.toArray(),
   ]);
 
-  const today = new Date().toLocaleDateString("sv-SE"); // AAAA-MM-JJ, heure locale
   const effective = effectivePayments(payAll);
-
-  const fees: FeeFile[] = feeTypes
-    .filter((ft) => !ft.deleted_at)
-    .map((ft) => {
-      const own = schedules
-        .filter(
-          (s) =>
-            s.fee_type_id === ft.id &&
-            !s.deleted_at &&
-            (s.class_name == null || s.class_name === student.class_name),
-        )
-        // sans échéance d'abord, puis par date : ordre d'imputation des paiements
-        .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
-      const paid = effective
-        .filter((p) => p.fee_type_id === ft.id)
-        .reduce((a, p) => a + Number(p.amount), 0);
-
-      let left = paid;
-      const tranches: Tranche[] = own.map((s) => {
-        const amount = Number(s.amount_expected);
-        const covered = Math.min(amount, Math.max(left, 0));
-        left -= covered;
-        return { amount, due_date: s.due_date, covered, is_due: !s.due_date || s.due_date <= today };
-      });
-
-      const expected = tranches.reduce((a, t) => a + t.amount, 0);
-      const due_expected = tranches.filter((t) => t.is_due).reduce((a, t) => a + t.amount, 0);
-      return {
+  const fees: FeeFile[] = computeFees(
+    feeTypes
+      .filter((ft) => !ft.deleted_at)
+      .map((ft) => ({
         fee_type_id: ft.id,
         name: ft.name,
         currency: ft.currency,
-        total_expected: expected,
-        total_paid: paid,
-        balance: expected - paid,
-        due_expected,
-        is_in_order: paid >= due_expected,
-        next_due: tranches.find((t) => t.covered < t.amount && t.due_date && !t.is_due)?.due_date ?? null,
-        tranches,
-      };
-    })
-    .filter((f) => f.tranches.length > 0 || f.total_paid > 0)
-    .sort((a, b) => a.name.localeCompare(b.name));
+        schedules: schedules
+          .filter(
+            (s) =>
+              s.fee_type_id === ft.id &&
+              !s.deleted_at &&
+              (s.class_name == null || s.class_name === student.class_name),
+          )
+          .map((s) => ({ amount: Number(s.amount_expected), due_date: s.due_date })),
+        paid: effective.filter((p) => p.fee_type_id === ft.id).reduce((a, p) => a + Number(p.amount), 0),
+      })),
+    localToday(),
+  );
 
   const cancelled = new Set(
     payAll.filter((p) => p.event_type === "cancellation").map((p) => p.cancels_event_id),

@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { HOME_BY_ROLE, type AppRole } from "@/lib/types";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
+// /parent : espace parent public (accès par code, sans compte)
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/parent"];
 
 /**
  * Rafraîchit la session Supabase et applique la protection de routes :

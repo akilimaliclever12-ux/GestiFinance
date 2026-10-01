@@ -5,6 +5,7 @@ import owner from "./owner";
 import reports from "./reports";
 import controller from "./controller";
 import receipt from "./receipt";
+import parent from "./parent";
 import type { Locale } from "../config";
 
 const build = (l: Locale) => ({
@@ -15,6 +16,7 @@ const build = (l: Locale) => ({
   reports: reports[l],
   controller: controller[l],
   receipt: receipt[l],
+  parent: parent[l],
 });
 
 export type Messages = ReturnType<typeof build>;

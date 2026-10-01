@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { updateSchoolLetterhead } from "@/lib/schools-actions";
 import { useToastOnSuccess } from "@/components/Toast";
 import { Letterhead, type SchoolLetterhead } from "@/components/Letterhead";
-import { createClient } from "@/lib/supabase/client";
+import { LogoField } from "../LogoField";
 import { useI18n } from "@/i18n/client";
 
 const inputCls =
@@ -20,30 +20,6 @@ export function LetterheadForm({ school }: { school: Fields }) {
   const [f, setF] = useState<Fields>(school);
   const set = (k: keyof Fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setF((prev) => ({ ...prev, [k]: e.target.value }));
-
-  const [uploading, setUploading] = useState(false);
-  const [uploadErr, setUploadErr] = useState<string | null>(null);
-
-  async function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setUploadErr(null);
-    const supabase = createClient();
-    const ext = (file.name.split(".").pop() || "png").toLowerCase();
-    const path = `${school.id}.${ext}`;
-    const { error } = await supabase.storage
-      .from("logos")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (error) {
-      setUploadErr(error.message);
-      setUploading(false);
-      return;
-    }
-    const { data } = supabase.storage.from("logos").getPublicUrl(path);
-    setF((prev) => ({ ...prev, logo_url: `${data.publicUrl}?v=${Date.now()}` }));
-    setUploading(false);
-  }
 
   return (
     <div className="space-y-4">
@@ -88,34 +64,13 @@ export function LetterheadForm({ school }: { school: Fields }) {
           </Field>
           <div className="sm:col-span-2">
             <span className="mb-1 block text-xs text-neutral-500">{tl.logo}</span>
-            <div className="flex flex-wrap items-center gap-3">
-              {f.logo_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={f.logo_url} alt="" className="h-12 w-12 rounded border border-neutral-200 object-contain dark:border-neutral-700" />
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onLogo}
-                disabled={uploading}
-                className="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-dark"
-              />
-              {uploading && <span className="text-xs text-neutral-500">{tl.uploading}</span>}
-              {f.logo_url && (
-                <button
-                  type="button"
-                  onClick={() => setF((prev) => ({ ...prev, logo_url: null }))}
-                  className="text-xs text-red-600 hover:underline"
-                >
-                  {tl.remove}
-                </button>
-              )}
-            </div>
-            {uploadErr && <p className="mt-1 text-xs text-red-600">{uploadErr}</p>}
+            <LogoField
+              schoolId={school.id}
+              url={f.logo_url}
+              onChange={(url) => setF((prev) => ({ ...prev, logo_url: url }))}
+            />
+            {/* Déjà enregistré par LogoField ; renvoyé tel quel avec l'en-tête */}
             <input type="hidden" name="logo_url" value={f.logo_url ?? ""} />
-            <p className="mt-1 text-[11px] text-neutral-400">
-              {tl.logoHint}
-            </p>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-3">

@@ -51,7 +51,7 @@ zone) ; TypeScript vérifie que chaque texte français a son équivalent anglais
 GestiFinance/
 ├── docs/                  Documents fondateurs (PRD, schéma, sync)
 ├── supabase/
-│   ├── migrations/        17 migrations SQL (schéma + RLS)
+│   ├── migrations/        18 migrations SQL (schéma + RLS)
 │   └── seed.sql           Tenant pilote « ECOBU »
 └── web/                   Application Next.js 16 (App Router, PWA à venir)
 ```
@@ -61,7 +61,7 @@ GestiFinance/
 ### 1. Créer le projet Supabase
 - Créez un projet sur [supabase.com](https://supabase.com).
 - Dans le **SQL Editor**, exécutez dans l'ordre les fichiers de
-  `supabase/migrations/` (0001 → 0017), puis `supabase/seed.sql`.
+  `supabase/migrations/` (0001 → 0018), puis `supabase/seed.sql`.
 
 ### 2. Créer le compte propriétaire ECOBU
 - Dashboard Supabase > **Authentication > Users > Add user** (email + mot de passe).

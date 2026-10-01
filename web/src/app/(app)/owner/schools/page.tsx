@@ -9,7 +9,7 @@ export default async function SchoolsPage() {
   const ts = t.owner.schools;
 
   const [{ data: schools }, { data: students }] = await Promise.all([
-    supabase.from("schools").select("id, name, address").is("deleted_at", null).order("name"),
+    supabase.from("schools").select("id, name, address, logo_url").is("deleted_at", null).order("name"),
     supabase.from("students").select("school_id").is("deleted_at", null),
   ]);
 
@@ -17,7 +17,7 @@ export default async function SchoolsPage() {
   for (const s of students ?? [])
     countBySchool.set(s.school_id as string, (countBySchool.get(s.school_id as string) ?? 0) + 1);
 
-  const list = (schools ?? []) as { id: string; name: string; address: string | null }[];
+  const list = (schools ?? []) as { id: string; name: string; address: string | null; logo_url: string | null }[];
 
   return (
     <div className="space-y-6">
@@ -36,6 +36,7 @@ export default async function SchoolsPage() {
           <table className="w-full min-w-[520px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
             <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
               <tr>
+                <th className="w-14 px-4 py-2">{ts.colLogo}</th>
                 <th className="px-4 py-2">{ts.colName}</th>
                 <th className="px-4 py-2">{ts.colAddress}</th>
                 <th className="px-4 py-2 text-right">{ts.colStudents}</th>
@@ -45,6 +46,19 @@ export default async function SchoolsPage() {
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
               {list.map((s) => (
                 <tr key={s.id}>
+                  <td className="px-4 py-2">
+                    <Link
+                      href={`/owner/schools/${s.id}`}
+                      className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-neutral-200 bg-white text-[10px] text-neutral-400 hover:border-brand"
+                    >
+                      {s.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.logo_url} alt="" className="h-full w-full object-contain" />
+                      ) : (
+                        "+"
+                      )}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2 font-medium">{s.name}</td>
                   <td className="px-4 py-2 text-neutral-500">{s.address ?? "—"}</td>
                   <td className="px-4 py-2 text-right">{countBySchool.get(s.id) ?? 0}</td>
@@ -57,7 +71,7 @@ export default async function SchoolsPage() {
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-4 text-neutral-500">
+                  <td colSpan={5} className="px-4 py-4 text-neutral-500">
                     {ts.empty}
                   </td>
                 </tr>

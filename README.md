@@ -82,12 +82,13 @@ Le cloisonnement est appliqué à deux niveaux :
 
 ## Identité visuelle
 
-Reprend le logo et les couleurs de **GestiEcole** (drapeau RDC) :
-bleu `#1668e3` (principal), jaune `#f7c21b` (étoile), rouge `#ea3324` (accent).
-Le logo est dans `web/public/logo.png` ; les couleurs sont définies dans
-`web/src/app/globals.css` (`@theme`, classes `bg-brand`, `text-brand`…).
-> Note : le logo actuel porte le libellé « GestiEcole » (marque famille). Un
-> variant « GestiFinance » pourra le remplacer sans changer le code (même fichier).
+Logo **GestiFinance** (emblème « GF », livre ouvert, étoile) aux couleurs de la
+famille GestiEcole (drapeau RDC) : bleu `#1668e3` (principal), jaune `#f7c21b`
+(étoile), rouge `#ea3324` (accent).
+Le logo est dans `web/public/logo.png` ; les icônes PWA (`icon-192.png`,
+`icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`) reprennent
+l'emblème seul. Les couleurs sont définies dans `web/src/app/globals.css`
+(`@theme`, classes `bg-brand`, `text-brand`…).
 
 ## Stack
 

@@ -6,7 +6,7 @@
  *    (on ne met PAS en cache le HTML des pages authentifiées).
  *  - Les appels Supabase (autre origine) ne sont pas interceptés.
  */
-const CACHE = "gf-shell-v1";
+const CACHE = "gf-shell-v2";
 const PRECACHE = ["/offline.html", "/logo.png", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {

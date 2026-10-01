@@ -13,7 +13,7 @@ export function TabNav({ tabs }: { tabs: Tab[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-neutral-200 px-4 dark:border-neutral-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav className="no-print -mx-4 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-neutral-200 px-4 dark:border-neutral-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tabs.map((t) => {
         const isRoot = t.href === "/owner" || t.href === "/accountant";
         const active = isRoot ? pathname === t.href : pathname.startsWith(t.href);

@@ -28,6 +28,9 @@ de son enfant (statut en ordre / non en ordre, frais par type, payé, reste,
 tranches et prochaine échéance — pas d'historique détaillé).
 - Le comptable génère un **code d'accès** depuis la fiche élève (carte « Accès
   parent ») : copier le lien, partager sur WhatsApp, régénérer, désactiver.
+- **Impression par classe** (Élèves → « Codes parents ») : génère les codes
+  manquants d'une classe (les existants sont conservés) et imprime des coupons
+  à découper (élève, classe, code, lien et QR code).
 - Codes `XXXXX-XXXXX` (≈ 10^15 combinaisons, sans 0/O ni 1/I), un par élève.
 - Le parent peut suivre plusieurs enfants ; les codes restent sur son téléphone.
 - Côté base (migration 0017) : table `parent_access_codes` réservée au

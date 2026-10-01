@@ -58,12 +58,20 @@ export default function StudentsPage() {
             {ts.count(students.length)} {q && ts.forQuery(q)}
           </p>
         </div>
-        <Link
-          href="/accountant/students/import"
-          className="rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand-light dark:hover:bg-brand/10"
-        >
-          {ts.importLink}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/accountant/parent-codes"
+            className="rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand-light dark:hover:bg-brand/10"
+          >
+            {t.parent.codes.linkFromStudents}
+          </Link>
+          <Link
+            href="/accountant/students/import"
+            className="rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand-light dark:hover:bg-brand/10"
+          >
+            {ts.importLink}
+          </Link>
+        </div>
       </div>
 
       <form onSubmit={onSubmit} className={cardCls}>

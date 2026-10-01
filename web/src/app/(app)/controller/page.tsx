@@ -21,6 +21,8 @@ type StatusRow = {
 type Status = "tous" | "ok" | "ko";
 
 const NO_CLASS = "Sans classe";
+const NO_SECTION = "Sans section";
+const NO_SECTION_KEY = "none";
 const classOf = (r: StatusRow) => r.class_name || NO_CLASS;
 const classRank = (c: string) => CLASS_ORDER[c] ?? (c === NO_CLASS ? 999 : 500);
 const byClass = (a: string, b: string) => classRank(a) - classRank(b) || a.localeCompare(b);
@@ -37,7 +39,7 @@ const selectCls =
 export default async function ControllerDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ school?: string; classe?: string; statut?: string; q?: string }>;
+  searchParams: Promise<{ school?: string; classe?: string; section?: string; statut?: string; q?: string }>;
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
@@ -45,6 +47,7 @@ export default async function ControllerDashboard({
 
   const schoolId = sp.school || schools[0]?.id || "";
   const classe = sp.classe || "";
+  const section = sp.section || "";
   const statut: Status = sp.statut === "ok" || sp.statut === "ko" ? sp.statut : "tous";
   const q = (sp.q || "").trim();
 
@@ -70,9 +73,19 @@ export default async function ControllerDashboard({
       ])
     : [{ data: null }, [] as StatusRow[]];
 
-  // Synthèse par classe (sur toute l'école, indépendamment des filtres)
+  // Sections présentes dans l'école (le filtre n'apparaît que s'il y en a)
+  const sections = [...new Set(all.map((r) => r.section).filter((x): x is string => !!x))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const hasNoSection = sections.length > 0 && all.some((r) => !r.section);
+  const sectionLabel = section === NO_SECTION_KEY ? NO_SECTION : section;
+  const bySection = !section
+    ? all
+    : all.filter((r) => (section === NO_SECTION_KEY ? !r.section : r.section === section));
+
+  // Synthèse par classe (sur la section choisie, sans les autres filtres)
   const perClass = new Map<string, { total: number; ok: number }>();
-  for (const r of all) {
+  for (const r of bySection) {
     const c = perClass.get(classOf(r)) ?? { total: 0, ok: 0 };
     c.total++;
     if (r.is_in_order) c.ok++;
@@ -80,7 +93,7 @@ export default async function ControllerDashboard({
   }
   const classes = [...perClass.keys()].sort(byClass);
 
-  const scope = classe ? all.filter((r) => classOf(r) === classe) : all;
+  const scope = classe ? bySection.filter((r) => classOf(r) === classe) : bySection;
   const okCount = scope.filter((r) => r.is_in_order).length;
   const koCount = scope.length - okCount;
   const pct = scope.length ? Math.round((okCount / scope.length) * 100) : 0;
@@ -92,7 +105,7 @@ export default async function ControllerDashboard({
     .sort((a, b) => byClass(classOf(a), classOf(b)));
 
   const href = (patch: Record<string, string>) => {
-    const p = new URLSearchParams({ school: schoolId, classe, statut, q, ...patch });
+    const p = new URLSearchParams({ school: schoolId, classe, section, statut, q, ...patch });
     for (const [k, v] of [...p.entries()]) if (!v || (k === "statut" && v === "tous")) p.delete(k);
     return `/controller?${p}`;
   };
@@ -140,6 +153,20 @@ export default async function ControllerDashboard({
               ))}
             </select>
           </label>
+          {sections.length > 0 && (
+            <label className="block">
+              <span className="mb-1 block text-xs text-neutral-500">Section</span>
+              <select name="section" defaultValue={section} className={selectCls}>
+                <option value="">Toutes les sections</option>
+                {sections.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+                {hasNoSection && <option value={NO_SECTION_KEY}>{NO_SECTION}</option>}
+              </select>
+            </label>
+          )}
           <label className="block">
             <span className="mb-1 block text-xs text-neutral-500">Statut</span>
             <select name="statut" defaultValue={statut} className={selectCls}>
@@ -169,7 +196,7 @@ export default async function ControllerDashboard({
 
       {/* Indicateurs */}
       <div className="no-print grid grid-cols-3 gap-3">
-        <Stat label={classe || "Élèves"} value={scope.length} />
+        <Stat label={[classe, sectionLabel].filter(Boolean).join(" · ") || "Élèves"} value={scope.length} />
         <Stat label="En ordre" value={okCount} hint={`${pct} %`} tone="ok" href={href({ statut: "ok" })} />
         <Stat label="Non en ordre" value={koCount} tone="ko" href={href({ statut: "ko" })} />
       </div>
@@ -223,7 +250,8 @@ export default async function ControllerDashboard({
             <div className="mt-3 text-center">
               <p className="text-base font-bold">{printTitle}</p>
               <p className="text-xs text-neutral-600">
-                {classe || "Toutes les classes"} — situation au {today} — {rows.length} élève(s)
+                {classe || "Toutes les classes"}
+                {sectionLabel && ` · ${sectionLabel}`} — situation au {today} — {rows.length} élève(s)
               </p>
             </div>
           </div>

@@ -30,7 +30,10 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "GestiFinance",
     },
     icons: {
-      icon: "/icon-192.png",
+      // Onglet du navigateur : version simplifiée « GF » (lisible en 16–32 px),
+      // favicon.ico étant ajouté automatiquement depuis src/app ; l'emblème
+      // complet reste pour l'écran d'accueil (apple-touch, PWA).
+      icon: { url: "/favicon-96.png", type: "image/png", sizes: "96x96" },
       apple: "/apple-touch-icon.png",
     },
   };

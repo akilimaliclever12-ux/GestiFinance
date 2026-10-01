@@ -4,15 +4,17 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionProfile } from "@/lib/auth";
+import { getI18n } from "@/i18n/server";
 import type { CurrencyCode } from "@/lib/types";
 
 type ActionState = { error?: string; success?: string } | null;
 
 async function requireAccountant() {
   const session = await getSessionProfile();
-  if (!session?.profile) throw new Error("Non authentifié");
+  const { t } = await getI18n();
+  if (!session?.profile) throw new Error(t.accountant.actions.notAuthenticated);
   if (session.profile.role !== "accountant")
-    throw new Error("Réservé au comptable");
+    throw new Error(t.accountant.actions.accountantOnly);
   return session;
 }
 
@@ -25,11 +27,12 @@ export async function createExpenseCategory(
 ): Promise<ActionState> {
   const session = await requireAccountant();
   const supabase = await createClient();
+  const a = (await getI18n()).t.accountant.actions;
 
   const school_id = String(formData.get("school_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   if (!school_id || !name)
-    return { error: "École et intitulé de catégorie obligatoires." };
+    return { error: a.categoryRequired };
 
   const { error } = await supabase.from("expense_categories").insert({
     id: randomUUID(),
@@ -39,7 +42,7 @@ export async function createExpenseCategory(
   });
   if (error) return { error: error.message };
   revalidatePath("/accountant/expenses");
-  return { success: `Catégorie « ${name} » créée.` };
+  return { success: a.categoryCreated(name) };
 }
 
 // ------------------------------------------------------------
@@ -51,6 +54,7 @@ export async function createExpense(
 ): Promise<ActionState> {
   const session = await requireAccountant();
   const supabase = await createClient();
+  const a = (await getI18n()).t.accountant.actions;
 
   const school_id = String(formData.get("school_id") ?? "");
   const category_id = String(formData.get("category_id") ?? "") || null;
@@ -63,7 +67,7 @@ export async function createExpense(
   const note = String(formData.get("note") ?? "").trim() || null;
 
   if (!school_id || !(amount > 0) || !currency || !paid_at)
-    return { error: "École, montant (> 0), devise et date sont obligatoires." };
+    return { error: a.expenseRequired };
 
   const { error } = await supabase.from("expense_events").insert({
     id: randomUUID(),
@@ -82,7 +86,7 @@ export async function createExpense(
   });
   if (error) return { error: error.message };
   revalidatePath("/accountant/expenses");
-  return { success: "Dépense enregistrée." };
+  return { success: a.expenseSaved };
 }
 
 // ------------------------------------------------------------
@@ -93,8 +97,9 @@ export async function cancelExpense(
   reason: string,
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await getSessionProfile();
+  const a = (await getI18n()).t.accountant.actions;
   if (session?.profile?.role !== "owner")
-    return { error: "Seul le promoteur peut autoriser une annulation." };
+    return { error: a.ownerOnlyCancel };
   const supabase = await createClient();
 
   const { data: exp } = await supabase
@@ -103,7 +108,7 @@ export async function cancelExpense(
     .eq("id", expenseId)
     .eq("event_type", "expense")
     .single();
-  if (!exp) return { error: "Dépense introuvable." };
+  if (!exp) return { error: a.expenseNotFound };
 
   const { error } = await supabase.from("expense_events").insert({
     id: randomUUID(),
@@ -120,7 +125,7 @@ export async function cancelExpense(
     authorized_by: session.userId,
   });
   if (error) {
-    if (error.code === "23505") return { error: "Cette dépense est déjà annulée." };
+    if (error.code === "23505") return { error: a.expenseAlreadyCancelled };
     return { error: error.message };
   }
   revalidatePath("/owner/expenses");

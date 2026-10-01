@@ -4,6 +4,8 @@ import { CancelPaymentButton } from "./CancelPaymentButton";
 import { tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
 import { EmptyState } from "@/components/EmptyState";
 import type { CurrencyCode } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
+import { formatMoney, formatIsoDate } from "@/i18n/format";
 
 type PayRow = {
   id: string;
@@ -16,11 +18,11 @@ type PayRow = {
   schools: { name: string } | null;
 };
 
-const money = (n: number, c: string) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
-
 export default async function OwnerPaymentsPage() {
   const supabase = await createClient();
+  const { locale, t } = await getI18n();
+  const tp = t.owner.payments;
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
 
   const { data: payments } = await supabase
     .from("payment_events")
@@ -41,25 +43,22 @@ export default async function OwnerPaymentsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-semibold">Paiements — supervision</h1>
-        <p className="text-sm text-neutral-500">
-          Vue consolidée de toutes vos écoles. Vous seul pouvez autoriser une
-          annulation.
-        </p>
+        <h1 className="text-lg font-semibold">{tp.title}</h1>
+        <p className="text-sm text-neutral-500">{tp.subtitle}</p>
       </div>
 
       <div className="overflow-x-auto">
         <table className={`${tableCls} min-w-[820px]`}>
           <thead className={theadCls}>
             <tr>
-              <th className={thCls}>Date</th>
-              <th className={thCls}>École</th>
-              <th className={thCls}>Élève</th>
-              <th className={thCls}>Frais</th>
-              <th className={thCls}>Bordereau</th>
-              <th className={thCls}>Montant</th>
-              <th className={thCls}>Reçu</th>
-              <th className={thCls}>Action</th>
+              <th className={thCls}>{tp.colDate}</th>
+              <th className={thCls}>{tp.colSchool}</th>
+              <th className={thCls}>{tp.colStudent}</th>
+              <th className={thCls}>{tp.colFee}</th>
+              <th className={thCls}>{tp.colSlip}</th>
+              <th className={thCls}>{tp.colAmount}</th>
+              <th className={thCls}>{tp.colReceipt}</th>
+              <th className={thCls}>{tp.colAction}</th>
             </tr>
           </thead>
           <tbody className={tbodyCls}>
@@ -67,7 +66,7 @@ export default async function OwnerPaymentsPage() {
               const isCancelled = cancelled.has(p.id);
               return (
                 <tr key={p.id} className={`${rowCls} ${isCancelled ? "opacity-50" : ""}`}>
-                  <td className={`${tdCls} whitespace-nowrap`}>{p.paid_at}</td>
+                  <td className={`${tdCls} whitespace-nowrap`}>{formatIsoDate(p.paid_at)}</td>
                   <td className={`${tdCls} text-xs text-neutral-500`}>
                     {p.schools?.name ?? "—"}
                   </td>
@@ -85,13 +84,13 @@ export default async function OwnerPaymentsPage() {
                   </td>
                   <td className={tdCls}>
                     <Link href={`/receipt/${p.id}`} className="font-medium text-brand hover:underline">
-                      Reçu
+                      {tp.receipt}
                     </Link>
                   </td>
                   <td className={tdCls}>
                     {isCancelled ? (
                       <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
-                        Annulé
+                        {tp.cancelled}
                       </span>
                     ) : (
                       <CancelPaymentButton paymentId={p.id} />
@@ -103,7 +102,7 @@ export default async function OwnerPaymentsPage() {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={8}>
-                  <EmptyState>Aucun paiement.</EmptyState>
+                  <EmptyState>{tp.empty}</EmptyState>
                 </td>
               </tr>
             )}

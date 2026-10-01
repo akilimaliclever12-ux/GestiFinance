@@ -18,20 +18,9 @@ export const HOME_BY_ROLE: Record<AppRole, string> = {
   controller: "/controller",
 };
 
-export const ROLE_LABELS: Record<AppRole, string> = {
-  owner: "Promoteur",
-  accountant: "Comptable",
-  controller: "Directeur / Préfet",
-};
 
 export type PaymentMethod = "cash" | "bank" | "mobile_money" | "other";
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  cash: "Espèces",
-  bank: "Banque",
-  mobile_money: "Mobile Money",
-  other: "Autre",
-};
 
 export const CURRENCIES: CurrencyCode[] = ["CDF", "USD", "BIF"];
 

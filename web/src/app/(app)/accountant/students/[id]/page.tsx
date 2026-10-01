@@ -8,45 +8,45 @@ import { getStudentFile, type FeeFile } from "@/lib/offline/repo";
 import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
 import { EmptyState } from "@/components/EmptyState";
 import { PrintButton } from "@/components/PrintButton";
-
-const money = (n: number, c: string) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
-const frDate = (iso: string) => iso.split("-").reverse().join("/");
+import { useI18n } from "@/i18n/client";
+import { formatMoney, formatIsoDate as frDate, formatToday } from "@/i18n/format";
 
 export default function StudentFilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { perms } = useOffline();
+  const { locale, t } = useI18n();
+  const tf = t.accountant.file;
   // undefined = chargement ; null = introuvable
   const file = useLiveQuery(() => getStudentFile(id), [id]);
 
   if (file === undefined) {
-    return <p className="text-sm text-neutral-500">Chargement…</p>;
+    return <p className="text-sm text-neutral-500">{t.common.loading}</p>;
   }
   if (file === null) {
     return (
       <div className={cardCls}>
-        <p className="text-sm text-neutral-500">Élève introuvable sur cet appareil.</p>
+        <p className="text-sm text-neutral-500">{tf.notFound}</p>
         <Link href="/accountant/students" className="mt-2 inline-block text-sm text-brand hover:underline">
-          ← Retour aux élèves
+          {tf.backToStudents}
         </Link>
       </div>
     );
   }
 
   const { student: s, fees, payments } = file;
-  const today = new Date().toLocaleDateString("fr-FR");
+  const today = formatToday();
 
   return (
     <div className="space-y-5">
       <Link href="/accountant/students" className="no-print text-sm text-brand hover:underline">
-        ← Élèves
+        {tf.back}
       </Link>
 
       {/* Identité + statut */}
       <div className={`${cardCls} flex flex-wrap items-start justify-between gap-4 print:border-0 print:p-0 print:shadow-none`}>
         <div>
           <p className="hidden text-xs text-neutral-500 print:block">
-            {file.school} — Fiche élève au {today}
+            {tf.printHeader(file.school, today)}
           </p>
           <h1 className="text-xl font-semibold">
             {s.last_name} {s.first_name}
@@ -54,7 +54,7 @@ export default function StudentFilePage({ params }: { params: Promise<{ id: stri
           <p className="mt-0.5 text-sm text-neutral-500">
             <span className="font-mono">{s.matricule}</span>
             {" · "}
-            {s.class_name ?? "Sans classe"}
+            {s.class_name ?? tf.noClass}
             {s.section && ` · ${s.section}`}
             {file.school && <span className="print:hidden"> · {file.school}</span>}
           </p>
@@ -62,11 +62,11 @@ export default function StudentFilePage({ params }: { params: Promise<{ id: stri
         <div className="flex flex-col items-end gap-2">
           {file.is_in_order ? (
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-              ● En ordre
+              {tf.inOrder}
             </span>
           ) : (
             <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-700 dark:bg-red-950 dark:text-red-400">
-              ● Non en ordre
+              {tf.notInOrder}
             </span>
           )}
           <div className="no-print flex flex-wrap justify-end gap-2">
@@ -75,20 +75,20 @@ export default function StudentFilePage({ params }: { params: Promise<{ id: stri
                 href={`/accountant/payments?student=${s.id}`}
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
               >
-                Nouveau paiement
+                {tf.newPayment}
               </Link>
             )}
-            <PrintButton label="Imprimer la fiche" />
+            <PrintButton label={tf.printFile} />
           </div>
         </div>
       </div>
 
       {/* Frais */}
       <div>
-        <h2 className="mb-2 text-sm font-semibold">Frais scolaires</h2>
+        <h2 className="mb-2 text-sm font-semibold">{tf.feesTitle}</h2>
         {fees.length === 0 ? (
           <div className={cardCls}>
-            <EmptyState>Aucun frais n&apos;est paramétré pour la classe de cet élève.</EmptyState>
+            <EmptyState>{tf.noFees}</EmptyState>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -101,17 +101,17 @@ export default function StudentFilePage({ params }: { params: Promise<{ id: stri
 
       {/* Historique des paiements */}
       <div>
-        <h2 className="mb-2 text-sm font-semibold">Historique des paiements ({payments.length})</h2>
+        <h2 className="mb-2 text-sm font-semibold">{tf.historyTitle(payments.length)}</h2>
         <div className="overflow-x-auto">
           <table className={`${tableCls} min-w-[640px]`}>
             <thead className={theadCls}>
               <tr>
-                <th className={thCls}>Date</th>
-                <th className={thCls}>Frais</th>
-                <th className={thCls}>Banque</th>
-                <th className={thCls}>Bordereau</th>
-                <th className={`${thCls} text-right`}>Montant</th>
-                <th className={`${thCls} no-print`}>Reçu</th>
+                <th className={thCls}>{tf.colDate}</th>
+                <th className={thCls}>{tf.colFee}</th>
+                <th className={thCls}>{tf.colBank}</th>
+                <th className={thCls}>{tf.colBordereau}</th>
+                <th className={`${thCls} text-right`}>{tf.colAmount}</th>
+                <th className={`${thCls} no-print`}>{tf.colReceipt}</th>
               </tr>
             </thead>
             <tbody className={tbodyCls}>
@@ -122,21 +122,21 @@ export default function StudentFilePage({ params }: { params: Promise<{ id: stri
                   <td className={tdCls}>{p.bank ?? "—"}</td>
                   <td className={`${tdCls} font-mono text-xs`}>{p.bordereau_no ?? "—"}</td>
                   <td className={`${tdCls} whitespace-nowrap text-right font-medium`}>
-                    <span className={p.cancelled ? "line-through" : ""}>{money(p.amount, p.currency)}</span>
+                    <span className={p.cancelled ? "line-through" : ""}>{formatMoney(locale, p.amount, p.currency)}</span>
                     {p.cancelled && (
                       <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
-                        Annulé
+                        {tf.cancelled}
                       </span>
                     )}
                   </td>
                   <td className={`${tdCls} no-print`}>
                     {p.synced ? (
                       <Link href={`/receipt/${p.id}`} className="font-medium text-brand hover:underline">
-                        Reçu
+                        {tf.receipt}
                       </Link>
                     ) : (
-                      <span className="text-xs text-amber-600" title="Le reçu sera disponible après synchronisation">
-                        En attente de synchro
+                      <span className="text-xs text-amber-600" title={tf.pendingSyncTitle}>
+                        {tf.pendingSync}
                       </span>
                     )}
                   </td>
@@ -145,7 +145,7 @@ export default function StudentFilePage({ params }: { params: Promise<{ id: stri
               {payments.length === 0 && (
                 <tr>
                   <td colSpan={6}>
-                    <EmptyState>Aucun paiement enregistré pour cet élève.</EmptyState>
+                    <EmptyState>{tf.noPayments}</EmptyState>
                   </td>
                 </tr>
               )}
@@ -158,6 +158,9 @@ export default function StudentFilePage({ params }: { params: Promise<{ id: stri
 }
 
 function FeeCard({ fee: f }: { fee: FeeFile }) {
+  const { locale, t } = useI18n();
+  const tf = t.accountant.file;
+  const money = (n: number, cur: string) => formatMoney(locale, n, cur);
   const c = f.currency;
   const dueLeft = Math.max(f.due_expected - f.total_paid, 0);
   const pct = f.total_expected > 0 ? Math.min(100, Math.round((f.total_paid / f.total_expected) * 100)) : 100;
@@ -167,9 +170,9 @@ function FeeCard({ fee: f }: { fee: FeeFile }) {
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold">{f.name}</p>
         {f.is_in_order ? (
-          <span className="text-xs font-medium text-emerald-600">● En ordre</span>
+          <span className="text-xs font-medium text-emerald-600">{tf.inOrder}</span>
         ) : (
-          <span className="text-xs font-medium text-red-600">● {money(dueLeft, c)} échu impayé</span>
+          <span className="text-xs font-medium text-red-600">{tf.overdueUnpaid(money(dueLeft, c))}</span>
         )}
       </div>
 
@@ -179,15 +182,15 @@ function FeeCard({ fee: f }: { fee: FeeFile }) {
 
       <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
         <div>
-          <dt className="text-xs text-neutral-500">Attendu (année)</dt>
+          <dt className="text-xs text-neutral-500">{tf.expectedYear}</dt>
           <dd className="font-medium">{money(f.total_expected, c)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-neutral-500">Payé</dt>
+          <dt className="text-xs text-neutral-500">{tf.paid}</dt>
           <dd className="font-medium text-emerald-600">{money(f.total_paid, c)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-neutral-500">Reste</dt>
+          <dt className="text-xs text-neutral-500">{tf.remaining}</dt>
           <dd className={`font-semibold ${f.balance > 0 ? "text-red-600" : "text-emerald-600"}`}>
             {money(Math.max(f.balance, 0), c)}
           </dd>
@@ -196,26 +199,26 @@ function FeeCard({ fee: f }: { fee: FeeFile }) {
 
       {f.tranches.length > 1 && (
         <ul className="mt-3 space-y-1 border-t border-neutral-100 pt-2 text-xs dark:border-neutral-800">
-          {f.tranches.map((t, i) => {
-            const done = t.covered >= t.amount;
+          {f.tranches.map((tr, i) => {
+            const done = tr.covered >= tr.amount;
             return (
               <li key={i} className="flex justify-between gap-2">
                 <span className="text-neutral-500">
-                  Tranche {i + 1}
-                  {t.due_date ? ` · échéance ${frDate(t.due_date)}` : " · exigible"}
+                  {tf.tranche(i + 1)}
+                  {tr.due_date ? tf.dueOn(frDate(tr.due_date)) : tf.dueNow}
                 </span>
                 <span
                   className={
                     done
                       ? "text-emerald-600"
-                      : t.is_due
+                      : tr.is_due
                         ? "font-medium text-red-600"
                         : "text-neutral-500"
                   }
                 >
                   {done
-                    ? `✓ ${money(t.amount, c)}`
-                    : `${money(t.covered, c)} / ${money(t.amount, c)}${t.is_due ? "" : " (à venir)"}`}
+                    ? `✓ ${money(tr.amount, c)}`
+                    : `${money(tr.covered, c)} / ${money(tr.amount, c)}${tr.is_due ? "" : tf.upcoming}`}
                 </span>
               </li>
             );
@@ -224,7 +227,7 @@ function FeeCard({ fee: f }: { fee: FeeFile }) {
       )}
 
       {f.next_due && (
-        <p className="mt-2 text-xs text-neutral-500">Prochaine échéance : {frDate(f.next_due)}</p>
+        <p className="mt-2 text-xs text-neutral-500">{tf.nextDue(frDate(f.next_due))}</p>
       )}
     </div>
   );

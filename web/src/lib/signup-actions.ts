@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CurrencyCode } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
 
 type State = { error?: string } | null;
 
@@ -19,12 +20,15 @@ export async function signUpOwner(_prev: State, formData: FormData): Promise<Sta
   const password = String(formData.get("password") ?? "");
   const currency = (String(formData.get("currency") ?? "CDF")) as CurrencyCode;
 
+  const { t } = await getI18n();
+  const e = t.auth.signup.errors;
+
   if (!full_name || !org || !email)
-    return { error: "Nom, espace et email sont obligatoires." };
+    return { error: e.required };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
-    return { error: "Email invalide." };
+    return { error: e.invalidEmail };
   if (password.length < 6)
-    return { error: "Le mot de passe doit faire au moins 6 caractères." };
+    return { error: e.passwordTooShort };
 
   const admin = createAdminClient();
 
@@ -36,9 +40,9 @@ export async function signUpOwner(_prev: State, formData: FormData): Promise<Sta
     user_metadata: { full_name },
   });
   if (authErr || !created?.user) {
-    const msg = authErr?.message ?? "Création du compte impossible.";
+    const msg = authErr?.message ?? e.accountFailed;
     if (/already|exist|registered/i.test(msg))
-      return { error: `Un compte existe déjà avec l'email ${email}.` };
+      return { error: e.emailExists(email) };
     return { error: msg };
   }
   const userId = created.user.id;
@@ -51,7 +55,7 @@ export async function signUpOwner(_prev: State, formData: FormData): Promise<Sta
     .single();
   if (tErr || !tenant) {
     await admin.auth.admin.deleteUser(userId).catch(() => {});
-    return { error: `Espace : ${tErr?.message ?? "création impossible"}` };
+    return { error: e.tenant(tErr?.message ?? null) };
   }
 
   // 3) Profil promoteur (owner) rattaché à l'espace
@@ -64,7 +68,7 @@ export async function signUpOwner(_prev: State, formData: FormData): Promise<Sta
   });
   if (pErr) {
     await admin.auth.admin.deleteUser(userId).catch(() => {});
-    return { error: `Profil : ${pErr.message}` };
+    return { error: e.profile(pErr.message) };
   }
 
   // 4) Connexion automatique (pose le cookie de session)

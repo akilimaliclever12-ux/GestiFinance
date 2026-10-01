@@ -8,23 +8,24 @@ import type { ImportRow } from "@/lib/types";
 import type { SchoolRef } from "@/lib/data";
 import { useOffline } from "@/lib/offline/OfflineProvider";
 import { CLASSES, normalizeClass } from "@/lib/classes";
+import { useI18n } from "@/i18n/client";
+import type { AccountantMessages } from "@/i18n/messages/accountant";
 
-function downloadTemplate() {
+function downloadTemplate(ti: AccountantMessages["import"]) {
+  // En-têtes selon la langue ; tous restent reconnus à l'import (voir mapRow).
   const example = [
-    { matricule: "E-0001", nom: "Kabila", prenom: "Joseph", classe: "6ème Primaire", section: "" },
-    { matricule: "E-0002", nom: "Mwamba", prenom: "Grâce", classe: "1ère Humanités", section: "Scientifique" },
+    ["E-0001", "Kabila", "Joseph", "6ème Primaire", ""],
+    ["E-0002", "Mwamba", "Grâce", "1ère Humanités", "Scientifique"],
   ];
-  const ws = XLSX.utils.json_to_sheet(example, {
-    header: ["matricule", "nom", "prenom", "classe", "section"],
-  });
+  const ws = XLSX.utils.aoa_to_sheet([ti.templateHeaders, ...example]);
   const wsClasses = XLSX.utils.aoa_to_sheet([
-    ["Classes valides (copiez exactement)"],
+    [ti.classesSheetTitle],
     ...CLASSES.map((c) => [c]),
   ]);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Élèves");
-  XLSX.utils.book_append_sheet(wb, wsClasses, "Classes");
-  XLSX.writeFile(wb, "modele_eleves_gestifinance.xlsx");
+  XLSX.utils.book_append_sheet(wb, ws, ti.templateSheet);
+  XLSX.utils.book_append_sheet(wb, wsClasses, ti.classesSheet);
+  XLSX.writeFile(wb, ti.templateFile);
 }
 
 const inputCls =
@@ -47,11 +48,15 @@ function mapRow(raw: Record<string, unknown>): ImportRow | null {
     return "";
   };
   const row: ImportRow = {
-    matricule: get("matricule", "mat", "numero", "n°", "no"),
-    last_name: get("nom", "last_name", "nom de famille"),
-    first_name: get("prenom", "first_name", "post-nom", "postnom"),
-    class_name: normalizeClass(get("classe", "class", "class_name")),
-    section: get("section", "option") || null,
+    // En-têtes français + alias anglais
+    matricule: get(
+      "matricule", "mat", "numero", "n°", "no",
+      "student id", "student_id", "student number", "id number", "id", "registration number", "reg no",
+    ),
+    last_name: get("nom", "last_name", "nom de famille", "last name", "lastname", "surname", "family name", "name"),
+    first_name: get("prenom", "first_name", "post-nom", "postnom", "first name", "firstname", "given name"),
+    class_name: normalizeClass(get("classe", "class", "class_name", "class name", "grade")),
+    section: get("section", "option", "stream") || null,
   };
   if (!row.matricule || !row.last_name || !row.first_name) return null;
   return row;
@@ -59,6 +64,8 @@ function mapRow(raw: Record<string, unknown>): ImportRow | null {
 
 export function ImportClient({ schools }: { schools: SchoolRef[] }) {
   const { syncNow } = useOffline();
+  const { t } = useI18n();
+  const ti = t.accountant.import;
   const [schoolId, setSchoolId] = useState(schools[0]?.id ?? "");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [rejected, setRejected] = useState(0);
@@ -93,11 +100,9 @@ export function ImportClient({ schools }: { schools: SchoolRef[] }) {
     setResult(null);
     const res = await importStudents(schoolId, rows);
     setBusy(false);
-    if (res.error) setResult(`Erreur : ${res.error}`);
+    if (res.error) setResult(ti.error(res.error));
     else {
-      setResult(
-        `${res.inserted} élève(s) importé(s), ${res.skipped} ignoré(s) (doublons ou déjà présents).`,
-      );
+      setResult(ti.result(res.inserted, res.skipped));
       void syncNow(); // rafraîchit le cache local avec les élèves importés
     }
     setRows([]);
@@ -106,28 +111,27 @@ export function ImportClient({ schools }: { schools: SchoolRef[] }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Importer des élèves</h1>
+        <h1 className="text-lg font-semibold">{ti.title}</h1>
         <Link href="/accountant/students" className="text-sm text-brand hover:underline">
-          ← Retour à la liste
+          {ti.backToList}
         </Link>
       </div>
 
       <div className="rounded-xl border border-neutral-200 bg-white p-4 text-sm dark:border-neutral-800 dark:bg-neutral-900">
         <p className="mb-3 text-neutral-600 dark:text-neutral-300">
-          Fichier <strong>.xlsx</strong> ou <strong>.csv</strong> avec les colonnes :{" "}
+          {ti.columnsBefore} <strong>.xlsx</strong> {ti.columnsOr} <strong>.csv</strong> {ti.columnsWith}{" "}
           <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">
-            matricule, nom, prenom, classe, section
+            {ti.templateHeaders.join(", ")}
           </code>
-          . La casse et les accents des en-têtes sont ignorés. Utilisez le modèle
-          pour éviter les erreurs (la 2ᵉ feuille liste les classes valides).
+          {ti.columnsHelp}
         </p>
 
         <button
           type="button"
-          onClick={downloadTemplate}
+          onClick={() => downloadTemplate(ti)}
           className="mb-3 rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand-light dark:hover:bg-brand/10"
         >
-          ⬇ Télécharger le modèle Excel
+          {ti.downloadTemplate}
         </button>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -156,19 +160,18 @@ export function ImportClient({ schools }: { schools: SchoolRef[] }) {
       {(rows.length > 0 || rejected > 0) && (
         <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
           <p className="mb-3 text-sm">
-            <strong>{fileName}</strong> — {rows.length} ligne(s) valides,{" "}
-            {rejected} ignorée(s).
+            <strong>{fileName}</strong> — {ti.summary(rows.length, rejected)}
           </p>
           {rows.length > 0 && (
             <div className="mb-3 max-h-64 overflow-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
                   <tr>
-                    <th className="px-3 py-1.5">Matricule</th>
-                    <th className="px-3 py-1.5">Nom</th>
-                    <th className="px-3 py-1.5">Prénom</th>
-                    <th className="px-3 py-1.5">Classe</th>
-                    <th className="px-3 py-1.5">Section</th>
+                    <th className="px-3 py-1.5">{ti.colMatricule}</th>
+                    <th className="px-3 py-1.5">{ti.colLastName}</th>
+                    <th className="px-3 py-1.5">{ti.colFirstName}</th>
+                    <th className="px-3 py-1.5">{ti.colClass}</th>
+                    <th className="px-3 py-1.5">{ti.colSection}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -190,7 +193,7 @@ export function ImportClient({ schools }: { schools: SchoolRef[] }) {
             disabled={busy || rows.length === 0 || !schoolId}
             className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
           >
-            {busy ? "Import en cours…" : `Importer ${rows.length} élève(s)`}
+            {busy ? ti.importing : ti.importN(rows.length)}
           </button>
         </div>
       )}

@@ -1,6 +1,8 @@
 import { db, type PaymentEventRow, type ExpenseEventRow, type StudentRow } from "./db";
 import { enqueueInsert } from "./sync";
 import type { CurrencyCode, PaymentMethod } from "@/lib/types";
+import { currentLocale, currentMessages } from "@/i18n/client";
+import { formatMoney } from "@/i18n/format";
 
 export interface Ctx {
   userId: string;
@@ -275,7 +277,7 @@ export async function createStudentLocal(
     .equals(input.school_id)
     .filter((s) => !s.deleted_at && s.matricule === input.matricule)
     .first();
-  if (dup) return { error: `Matricule « ${input.matricule} » déjà utilisé.` };
+  if (dup) return { error: currentMessages().accountant.offline.matriculeUsed(input.matricule) };
 
   const row: StudentRow = {
     id: uuid(),
@@ -304,8 +306,9 @@ export async function createPaymentLocal(
     note?: string | null;
   },
 ): Promise<{ id?: string; error?: string }> {
+  const m = currentMessages().accountant.offline;
   const feeType = await db.fee_types.get(input.fee_type_id);
-  if (!feeType) return { error: "Type de frais introuvable." };
+  if (!feeType) return { error: m.feeTypeNotFound };
 
   if (input.bordereau_no) {
     const dup = await db.payment_events
@@ -316,7 +319,7 @@ export async function createPaymentLocal(
       )
       .first();
     if (dup)
-      return { error: `Bordereau n°${input.bordereau_no} déjà enregistré (anti-doublon).` };
+      return { error: m.bordereauDup(input.bordereau_no) };
   }
 
   // Plafond : on ne peut pas payer plus que le reste dû pour ce frais.
@@ -324,10 +327,10 @@ export async function createPaymentLocal(
   const fee = ctxData?.fees.find((f) => f.fee_type_id === input.fee_type_id);
   if (fee) {
     if (fee.balance <= 0)
-      return { error: "Ce frais est déjà entièrement payé (aucun montant dû)." };
+      return { error: m.fullyPaid };
     if (input.amount > fee.balance + 0.001)
       return {
-        error: `Le montant dépasse le reste dû. Maximum : ${new Intl.NumberFormat("fr-FR").format(fee.balance)} ${fee.currency}.`,
+        error: m.overBalance(formatMoney(currentLocale(), fee.balance, fee.currency)),
       };
   }
 

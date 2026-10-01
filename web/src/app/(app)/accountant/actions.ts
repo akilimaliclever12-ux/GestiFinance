@@ -4,15 +4,17 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionProfile } from "@/lib/auth";
+import { getI18n } from "@/i18n/server";
 import type { CurrencyCode, ImportRow } from "@/lib/types";
 
 type ActionState = { error?: string; success?: string } | null;
 
 async function requireAccountant() {
   const session = await getSessionProfile();
-  if (!session?.profile) throw new Error("Non authentifié");
+  const { t } = await getI18n();
+  if (!session?.profile) throw new Error(t.accountant.actions.notAuthenticated);
   if (session.profile.role !== "accountant")
-    throw new Error("Réservé au comptable");
+    throw new Error(t.accountant.actions.accountantOnly);
   return session.profile;
 }
 
@@ -25,6 +27,7 @@ export async function createStudent(
 ): Promise<ActionState> {
   const profile = await requireAccountant();
   const supabase = await createClient();
+  const a = (await getI18n()).t.accountant.actions;
 
   const school_id = String(formData.get("school_id") ?? "");
   const matricule = String(formData.get("matricule") ?? "").trim();
@@ -34,7 +37,7 @@ export async function createStudent(
   const section = String(formData.get("section") ?? "").trim() || null;
 
   if (!school_id || !matricule || !last_name || !first_name) {
-    return { error: "École, matricule, nom et prénom sont obligatoires." };
+    return { error: a.studentRequired };
   }
 
   const { error } = await supabase.from("students").insert({
@@ -50,12 +53,12 @@ export async function createStudent(
 
   if (error) {
     if (error.code === "23505")
-      return { error: `Le matricule « ${matricule} » existe déjà dans cette école.` };
+      return { error: a.matriculeExists(matricule) };
     return { error: error.message };
   }
 
   revalidatePath("/accountant/students");
-  return { success: `Élève ${last_name} ${first_name} enregistré.` };
+  return { success: a.studentSaved(`${last_name} ${first_name}`) };
 }
 
 export async function importStudents(
@@ -64,8 +67,9 @@ export async function importStudents(
 ): Promise<{ inserted: number; skipped: number; error?: string }> {
   const profile = await requireAccountant();
   const supabase = await createClient();
+  const a = (await getI18n()).t.accountant.actions;
 
-  if (!school_id) return { inserted: 0, skipped: 0, error: "École manquante." };
+  if (!school_id) return { inserted: 0, skipped: 0, error: a.schoolMissing };
 
   const clean = rows
     .map((r) => ({
@@ -78,7 +82,7 @@ export async function importStudents(
     .filter((r) => r.matricule && r.last_name && r.first_name);
 
   if (clean.length === 0)
-    return { inserted: 0, skipped: rows.length, error: "Aucune ligne valide." };
+    return { inserted: 0, skipped: rows.length, error: a.noValidRows };
 
   const payload = clean.map((r) => ({
     id: randomUUID(),
@@ -109,13 +113,14 @@ export async function createFeeType(
 ): Promise<ActionState> {
   const profile = await requireAccountant();
   const supabase = await createClient();
+  const a = (await getI18n()).t.accountant.actions;
 
   const school_id = String(formData.get("school_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const currency = String(formData.get("currency") ?? "CDF") as CurrencyCode;
 
   if (!school_id || !name)
-    return { error: "École et intitulé du frais obligatoires." };
+    return { error: a.feeTypeRequired };
 
   const { error } = await supabase.from("fee_types").insert({
     id: randomUUID(),
@@ -127,7 +132,7 @@ export async function createFeeType(
 
   if (error) return { error: error.message };
   revalidatePath("/accountant/fees");
-  return { success: `Type de frais « ${name} » créé.` };
+  return { success: a.feeTypeCreated(name) };
 }
 
 export async function createFeeSchedule(
@@ -136,6 +141,7 @@ export async function createFeeSchedule(
 ): Promise<ActionState> {
   const profile = await requireAccountant();
   const supabase = await createClient();
+  const a = (await getI18n()).t.accountant.actions;
 
   const school_id = String(formData.get("school_id") ?? "");
   const fee_type_id = String(formData.get("fee_type_id") ?? "");
@@ -144,7 +150,7 @@ export async function createFeeSchedule(
   const due_date = String(formData.get("due_date") ?? "").trim() || null;
 
   if (!school_id || !fee_type_id || !(amount_expected >= 0))
-    return { error: "École, type de frais et montant valides obligatoires." };
+    return { error: a.scheduleRequired };
 
   const { error } = await supabase.from("fee_schedules").insert({
     id: randomUUID(),
@@ -158,5 +164,5 @@ export async function createFeeSchedule(
 
   if (error) return { error: error.message };
   revalidatePath("/accountant/fees");
-  return { success: "Barème ajouté." };
+  return { success: a.scheduleAdded };
 }

@@ -21,6 +21,14 @@ Logiciel de **gestion des finances scolaires**, Offline-First, pour les écoles 
 | **P5** | Rapports imprimables (en-tête d'école) + export **Excel** (synthèse + détail des opérations) et **PDF** (synthèse + annexes), générés dans le navigateur | ✅ Fait |
 | **P6** | Vue directeur : statut en ordre / non en ordre **sans montants**, synthèse par classe, filtres (classe, statut, recherche), liste imprimable avec en-tête d'école | ✅ Fait |
 
+## Langues (FR / EN)
+
+L'interface et les documents (reçus, rapports PDF/Excel, listes imprimées) sont
+disponibles en **français** (par défaut) et en **anglais**. Bouton FR/EN dans
+l'en-tête et sur les pages de connexion/inscription ; le choix est mémorisé dans
+le cookie `lang`. Les textes sont dans `web/src/i18n/messages/` (un fichier par
+zone) ; TypeScript vérifie que chaque texte français a son équivalent anglais.
+
 ## Structure
 
 ```

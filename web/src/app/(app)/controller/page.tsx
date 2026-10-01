@@ -7,6 +7,8 @@ import { Letterhead, type SchoolLetterhead } from "@/components/Letterhead";
 import { PrintButton } from "@/components/PrintButton";
 import { EmptyState } from "@/components/EmptyState";
 import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
+import { getI18n } from "@/i18n/server";
+import { formatToday } from "@/i18n/format";
 
 type StatusRow = {
   student_id: string;
@@ -20,11 +22,12 @@ type StatusRow = {
 
 type Status = "tous" | "ok" | "ko";
 
-const NO_CLASS = "Sans classe";
-const NO_SECTION = "Sans section";
+// Clés internes (regroupement + paramètres d'URL), indépendantes de la langue ; seul l'affichage est traduit.
+// NO_CLASS_KEY garde son ancienne valeur pour ne pas casser les liens existants (?classe=Sans classe).
+const NO_CLASS_KEY = "Sans classe";
 const NO_SECTION_KEY = "none";
-const classOf = (r: StatusRow) => r.class_name || NO_CLASS;
-const classRank = (c: string) => CLASS_ORDER[c] ?? (c === NO_CLASS ? 999 : 500);
+const classOf = (r: StatusRow) => r.class_name || NO_CLASS_KEY;
+const classRank = (c: string) => CLASS_ORDER[c] ?? (c === NO_CLASS_KEY ? 999 : 500);
 const byClass = (a: string, b: string) => classRank(a) - classRank(b) || a.localeCompare(b);
 
 const norm = (s: string) =>
@@ -42,6 +45,9 @@ export default async function ControllerDashboard({
   searchParams: Promise<{ school?: string; classe?: string; section?: string; statut?: string; q?: string }>;
 }) {
   const sp = await searchParams;
+  const { t } = await getI18n();
+  const tc = t.controller;
+  const classLabel = (c: string) => (c === NO_CLASS_KEY ? tc.noClass : c);
   const supabase = await createClient();
   const schools = await getMySchools();
 
@@ -78,7 +84,7 @@ export default async function ControllerDashboard({
     a.localeCompare(b),
   );
   const hasNoSection = sections.length > 0 && all.some((r) => !r.section);
-  const sectionLabel = section === NO_SECTION_KEY ? NO_SECTION : section;
+  const sectionLabel = section === NO_SECTION_KEY ? tc.noSection : section;
   const bySection = !section
     ? all
     : all.filter((r) => (section === NO_SECTION_KEY ? !r.section : r.section === section));
@@ -110,21 +116,14 @@ export default async function ControllerDashboard({
     return `/controller?${p}`;
   };
 
-  const today = new Date().toLocaleDateString("fr-FR");
-  const printTitle =
-    statut === "ko"
-      ? "LISTE DES ÉLÈVES NON EN ORDRE"
-      : statut === "ok"
-        ? "LISTE DES ÉLÈVES EN ORDRE"
-        : "STATUT DE SOLVABILITÉ DES ÉLÈVES";
+  const today = formatToday();
+  const printTitle = statut === "ko" ? tc.print.titleKo : statut === "ok" ? tc.print.titleOk : tc.print.titleAll;
 
   return (
     <div className="space-y-5">
       <div className="no-print">
-        <h1 className="text-xl font-semibold">Contrôle de solvabilité</h1>
-        <p className="text-sm text-neutral-500">
-          Statut des élèves pour l&apos;accès aux cours et aux examens, selon les frais déjà échus — sans aucun montant.
-        </p>
+        <h1 className="text-xl font-semibold">{tc.title}</h1>
+        <p className="text-sm text-neutral-500">{tc.intro}</p>
       </div>
 
       {/* Filtres */}
@@ -132,7 +131,7 @@ export default async function ControllerDashboard({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {schools.length > 1 && (
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-500">École</span>
+              <span className="mb-1 block text-xs text-neutral-500">{t.common.school}</span>
               <select name="school" defaultValue={schoolId} className={selectCls}>
                 {schools.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -143,62 +142,65 @@ export default async function ControllerDashboard({
             </label>
           )}
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">Classe</span>
+            <span className="mb-1 block text-xs text-neutral-500">{tc.filters.className}</span>
             <select name="classe" defaultValue={classe} className={selectCls}>
-              <option value="">Toutes les classes</option>
+              <option value="">{tc.filters.allClasses}</option>
               {classes.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {classLabel(c)}
                 </option>
               ))}
             </select>
           </label>
           {sections.length > 0 && (
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-500">Section</span>
+              <span className="mb-1 block text-xs text-neutral-500">{tc.filters.section}</span>
               <select name="section" defaultValue={section} className={selectCls}>
-                <option value="">Toutes les sections</option>
+                <option value="">{tc.filters.allSections}</option>
                 {sections.map((x) => (
                   <option key={x} value={x}>
                     {x}
                   </option>
                 ))}
-                {hasNoSection && <option value={NO_SECTION_KEY}>{NO_SECTION}</option>}
+                {hasNoSection && <option value={NO_SECTION_KEY}>{tc.noSection}</option>}
               </select>
             </label>
           )}
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">Statut</span>
+            <span className="mb-1 block text-xs text-neutral-500">{tc.filters.status}</span>
             <select name="statut" defaultValue={statut} className={selectCls}>
-              <option value="tous">Tous</option>
-              <option value="ko">Non en ordre</option>
-              <option value="ok">En ordre</option>
+              <option value="tous">{tc.filters.all}</option>
+              <option value="ko">{tc.notInOrder}</option>
+              <option value="ok">{tc.inOrder}</option>
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">Recherche</span>
+            <span className="mb-1 block text-xs text-neutral-500">{tc.filters.search}</span>
             <input
               type="search"
               name="q"
               defaultValue={q}
-              placeholder="Nom ou matricule"
+              placeholder={tc.filters.searchPlaceholder}
               className={selectCls}
             />
           </label>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
-            Afficher
+            {tc.filters.show}
           </button>
-          <PrintButton label="Imprimer la liste" />
+          <PrintButton label={tc.filters.printList} />
         </div>
       </form>
 
       {/* Indicateurs */}
       <div className="no-print grid grid-cols-3 gap-3">
-        <Stat label={[classe, sectionLabel].filter(Boolean).join(" · ") || "Élèves"} value={scope.length} />
-        <Stat label="En ordre" value={okCount} hint={`${pct} %`} tone="ok" href={href({ statut: "ok" })} />
-        <Stat label="Non en ordre" value={koCount} tone="ko" href={href({ statut: "ko" })} />
+        <Stat
+          label={[classe && classLabel(classe), sectionLabel].filter(Boolean).join(" · ") || tc.stats.students}
+          value={scope.length}
+        />
+        <Stat label={tc.inOrder} value={okCount} hint={`${pct} %`} tone="ok" href={href({ statut: "ok" })} />
+        <Stat label={tc.notInOrder} value={koCount} tone="ko" href={href({ statut: "ko" })} />
       </div>
 
       {/* Synthèse par classe */}
@@ -207,10 +209,10 @@ export default async function ControllerDashboard({
           <table className={tableCls}>
             <thead className={theadCls}>
               <tr>
-                <th className={thCls}>Classe</th>
-                <th className={`${thCls} text-right`}>Effectif</th>
-                <th className={`${thCls} text-right`}>En ordre</th>
-                <th className={`${thCls} text-right`}>Non en ordre</th>
+                <th className={thCls}>{tc.summary.className}</th>
+                <th className={`${thCls} text-right`}>{tc.summary.headcount}</th>
+                <th className={`${thCls} text-right`}>{tc.inOrder}</th>
+                <th className={`${thCls} text-right`}>{tc.notInOrder}</th>
               </tr>
             </thead>
             <tbody className={tbodyCls}>
@@ -220,7 +222,7 @@ export default async function ControllerDashboard({
                   <tr key={c} className={rowCls}>
                     <td className={tdCls}>
                       <Link href={href({ classe: c })} className="font-medium text-brand hover:underline">
-                        {c}
+                        {classLabel(c)}
                       </Link>
                     </td>
                     <td className={`${tdCls} text-right`}>{s.total}</td>
@@ -250,8 +252,9 @@ export default async function ControllerDashboard({
             <div className="mt-3 text-center">
               <p className="text-base font-bold">{printTitle}</p>
               <p className="text-xs text-neutral-600">
-                {classe || "Toutes les classes"}
-                {sectionLabel && ` · ${sectionLabel}`} — situation au {today} — {rows.length} élève(s)
+                {classe ? classLabel(classe) : tc.filters.allClasses}
+                {sectionLabel && ` · ${sectionLabel}`}
+                {tc.print.asOf(today, rows.length)}
               </p>
             </div>
           </div>
@@ -262,10 +265,10 @@ export default async function ControllerDashboard({
             <thead className={theadCls}>
               <tr>
                 <th className={`${thCls} w-10 text-right`}>#</th>
-                <th className={thCls}>Matricule</th>
-                <th className={thCls}>Nom</th>
-                {!classe && <th className={thCls}>Classe</th>}
-                <th className={thCls}>Statut</th>
+                <th className={thCls}>{tc.table.matricule}</th>
+                <th className={thCls}>{tc.table.name}</th>
+                {!classe && <th className={thCls}>{tc.table.className}</th>}
+                <th className={thCls}>{tc.table.status}</th>
               </tr>
             </thead>
             <tbody className={tbodyCls}>
@@ -278,18 +281,18 @@ export default async function ControllerDashboard({
                   </td>
                   {!classe && (
                     <td className={`${tdCls} text-neutral-600 dark:text-neutral-400`}>
-                      {r.class_name ?? "—"}
+                      {r.class_name ?? t.common.none}
                       {r.section && <span className="text-neutral-400"> · {r.section}</span>}
                     </td>
                   )}
                   <td className={tdCls}>
                     {r.is_in_order ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 print:bg-transparent print:px-0">
-                        ● En ordre
+                        ● {tc.inOrder}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-400 print:bg-transparent print:px-0">
-                        ● Non en ordre
+                        ● {tc.notInOrder}
                       </span>
                     )}
                   </td>
@@ -300,8 +303,8 @@ export default async function ControllerDashboard({
                   <td colSpan={5}>
                     <EmptyState>
                       {all.length === 0
-                        ? "Aucun élève enregistré pour cette école."
-                        : "Aucun élève ne correspond à ces critères."}
+                        ? tc.empty.noStudents
+                        : tc.empty.noMatch}
                     </EmptyState>
                   </td>
                 </tr>
@@ -314,9 +317,9 @@ export default async function ControllerDashboard({
           <footer className="mt-10 hidden items-end justify-between text-xs text-neutral-500 print:flex">
             <div>
               <div className="mb-1 h-10 w-44 border-b border-neutral-300" />
-              Le Directeur / Préfet
+              {tc.print.signature}
             </div>
-            <p>Édité via GestiFinance</p>
+            <p>{t.common.signedBy}</p>
           </footer>
         )}
       </div>

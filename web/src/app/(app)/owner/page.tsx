@@ -10,21 +10,25 @@ import {
   IconTrendDown,
 } from "@/components/icons";
 import type { CurrencyCode } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
+import { formatMoney } from "@/i18n/format";
+import type { Locale } from "@/i18n/config";
+import type { Messages } from "@/i18n/messages";
 
 type CurrencyTotals = Partial<Record<CurrencyCode, number>>;
-
-const money = (n: number, c: string) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 
 type Row = { amount: number; currency: CurrencyCode; paid_at: string; school_id: string; bank_id?: string | null };
 
 // Les écoles sont en RDC / au Burundi : les « jours » se comptent en heure de Lubumbashi (UTC+2).
 const TZ = "Africa/Lubumbashi";
 const localDate = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: TZ }); // AAAA-MM-JJ
-const NO_BANK = "Banque non renseignée";
 
 export default async function OwnerDashboard() {
   const supabase = await createClient();
+  const { locale, t } = await getI18n();
+  const tr = t.owner.dashboard;
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
+  const NO_BANK = tr.noBank;
 
   const todayStr = localDate(new Date());
   const [y, m, d] = todayStr.split("-").map(Number);
@@ -142,15 +146,15 @@ export default async function OwnerDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="text-sm text-neutral-500">Recettes, dépenses et solde net de vos écoles.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{tr.title}</h1>
+        <p className="text-sm text-neutral-500">{tr.subtitle}</p>
       </div>
 
       {/* Héros — solde net de l'année */}
       <section className="overflow-hidden rounded-2xl bg-brand text-white shadow-sm shadow-brand/20">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
-            <p className="text-sm font-medium text-white/70">Solde net · cette année</p>
+            <p className="text-sm font-medium text-white/70">{tr.netThisYear}</p>
             {yearNet.length === 0 ? (
               <p className="mt-1 text-3xl font-bold">—</p>
             ) : (
@@ -187,38 +191,38 @@ export default async function OwnerDashboard() {
 
       {/* Indicateurs élèves */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Stat label="Écoles" value={String(schools.length)} icon={<IconSchool className={iconCls} />} tone="brand" />
-        <Stat label="Élèves" value={String(totalStudents)} icon={<IconUsers className={iconCls} />} tone="brand" />
-        <Stat label="Solvables" value={String(solvables)} icon={<IconCheck className={iconCls} />} tone="ok" />
-        <Stat label="Non solvables" value={String(notInOrder)} icon={<IconAlert className={iconCls} />} tone={notInOrder ? "bad" : "muted"} />
+        <Stat label={tr.schools} value={String(schools.length)} icon={<IconSchool className={iconCls} />} tone="brand" />
+        <Stat label={tr.students} value={String(totalStudents)} icon={<IconUsers className={iconCls} />} tone="brand" />
+        <Stat label={tr.solvent} value={String(solvables)} icon={<IconCheck className={iconCls} />} tone="ok" />
+        <Stat label={tr.notSolvent} value={String(notInOrder)} icon={<IconAlert className={iconCls} />} tone={notInOrder ? "bad" : "muted"} />
       </section>
 
       {/* Trésorerie détaillée */}
       <section>
-        <h2 className="mb-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">Trésorerie</h2>
+        <h2 className="mb-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">{tr.treasury}</h2>
         <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-          <TresorerieCard title="Aujourd'hui" recettes={rec.today} depenses={dep.today} />
-          <TresorerieCard title="Cette semaine" recettes={rec.week} depenses={dep.week} />
-          <TresorerieCard title="Ce mois" recettes={rec.month} depenses={dep.month} />
-          <TresorerieCard title="Cette année" recettes={rec.year} depenses={dep.year} />
+          <TresorerieCard title={tr.today} recettes={rec.today} depenses={dep.today} locale={locale} t={t} />
+          <TresorerieCard title={tr.thisWeek} recettes={rec.week} depenses={dep.week} locale={locale} t={t} />
+          <TresorerieCard title={tr.thisMonth} recettes={rec.month} depenses={dep.month} locale={locale} t={t} />
+          <TresorerieCard title={tr.thisYear} recettes={rec.year} depenses={dep.year} locale={locale} t={t} />
         </div>
       </section>
 
       {/* Répartition par école */}
       <section>
         <h2 className="mb-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-          Par école · cette année
+          {tr.bySchool}
         </h2>
         <div className="overflow-x-auto">
           <table className={`${tableCls} min-w-[640px]`}>
             <thead className={theadCls}>
               <tr>
-                <th className={thCls}>École</th>
-                <th className={`${thCls} text-right`}>Recettes</th>
-                <th className={`${thCls} text-right`}>Dépenses</th>
-                <th className={`${thCls} text-right`}>Solde</th>
-                <th className={`${thCls} text-right`}>Élèves</th>
-                <th className={`${thCls} text-right`}>Non solvables</th>
+                <th className={thCls}>{tr.colSchool}</th>
+                <th className={`${thCls} text-right`}>{tr.colIncome}</th>
+                <th className={`${thCls} text-right`}>{tr.colExpenses}</th>
+                <th className={`${thCls} text-right`}>{tr.colBalance}</th>
+                <th className={`${thCls} text-right`}>{tr.colStudents}</th>
+                <th className={`${thCls} text-right`}>{tr.colNotSolvent}</th>
               </tr>
             </thead>
             <tbody className={tbodyCls}>
@@ -233,9 +237,9 @@ export default async function OwnerDashboard() {
                         {s.name}
                       </span>
                     </td>
-                    <MoneyCell cs={cs} get={(c) => e.rec[c] ?? 0} />
-                    <MoneyCell cs={cs} get={(c) => e.dep[c] ?? 0} />
-                    <MoneyCell cs={cs} get={(c) => (e.rec[c] ?? 0) - (e.dep[c] ?? 0)} signed />
+                    <MoneyCell cs={cs} get={(c) => e.rec[c] ?? 0} locale={locale} />
+                    <MoneyCell cs={cs} get={(c) => e.dep[c] ?? 0} locale={locale} />
+                    <MoneyCell cs={cs} get={(c) => (e.rec[c] ?? 0) - (e.dep[c] ?? 0)} signed locale={locale} />
                     <td className={`${tdCls} text-right tabular-nums`}>{e.students}</td>
                     <td className={`${tdCls} text-right font-semibold tabular-nums ${e.ko ? "text-red-600" : "text-neutral-400"}`}>
                       {e.ko}
@@ -246,7 +250,7 @@ export default async function OwnerDashboard() {
               {schools.length === 0 && (
                 <tr>
                   <td colSpan={6} className={`${tdCls} text-neutral-500`}>
-                    Aucune école.
+                    {tr.noSchools}
                   </td>
                 </tr>
               )}
@@ -258,11 +262,11 @@ export default async function OwnerDashboard() {
       {/* Répartition par banque */}
       <section>
         <h2 className="mb-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-          Recettes par banque · cette année
+          {tr.byBank}
         </h2>
         {bankRows.length === 0 ? (
           <div className={cardCls}>
-            <p className="text-sm text-neutral-500">Aucune recette cette année.</p>
+            <p className="text-sm text-neutral-500">{tr.noIncome}</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
@@ -278,7 +282,7 @@ export default async function OwnerDashboard() {
                         <span className={r.name === NO_BANK ? "italic text-neutral-500" : "font-medium"}>{r.name}</span>
                         <span className="tabular-nums">
                           {money(r.amount, c)}
-                          <span className="ml-2 text-xs text-neutral-400">{Math.round(r.share * 100)} %</span>
+                          <span className="ml-2 text-xs text-neutral-400">{Math.round(r.share * 100)}{locale === "fr" ? " %" : "%"}</span>
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
@@ -330,11 +334,17 @@ function TresorerieCard({
   title,
   recettes,
   depenses,
+  locale,
+  t,
 }: {
   title: string;
   recettes: CurrencyTotals;
   depenses: CurrencyTotals;
+  locale: Locale;
+  t: Messages;
 }) {
+  const tr = t.owner.dashboard;
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
   const currencies = Array.from(
     new Set([...Object.keys(recettes), ...Object.keys(depenses)]),
   ) as CurrencyCode[];
@@ -354,18 +364,18 @@ function TresorerieCard({
               <div key={c} className="rounded-lg bg-neutral-50 p-2.5 dark:bg-neutral-800/40">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1 text-emerald-600">
-                    <IconTrendUp className="h-3.5 w-3.5" /> Recettes
+                    <IconTrendUp className="h-3.5 w-3.5" /> {tr.income}
                   </span>
                   <span className="font-medium tabular-nums">{money(r, c)}</span>
                 </div>
                 <div className="mt-0.5 flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1 text-red-600">
-                    <IconTrendDown className="h-3.5 w-3.5" /> Dépenses
+                    <IconTrendDown className="h-3.5 w-3.5" /> {tr.expenses}
                   </span>
                   <span className="font-medium tabular-nums">{money(d, c)}</span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between border-t border-neutral-200 pt-1.5 dark:border-neutral-700">
-                  <span className="text-xs font-semibold">Solde · {c}</span>
+                  <span className="text-xs font-semibold">{tr.balance(c)}</span>
                   <span className={`font-display text-base font-bold tabular-nums ${net >= 0 ? "text-brand" : "text-red-600"}`}>
                     {money(net, c)}
                   </span>
@@ -383,11 +393,14 @@ function MoneyCell({
   cs,
   get,
   signed,
+  locale,
 }: {
   cs: CurrencyCode[];
   get: (c: CurrencyCode) => number;
   signed?: boolean;
+  locale: Locale;
 }) {
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
   return (
     <td className={`${tdCls} text-right tabular-nums`}>
       {cs.length === 0 ? (

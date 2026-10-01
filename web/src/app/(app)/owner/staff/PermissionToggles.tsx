@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateStaffPermissions } from "@/lib/staff-actions";
+import { useI18n } from "@/i18n/client";
 
 export function PermissionToggles({
   userId,
@@ -18,10 +19,12 @@ export function PermissionToggles({
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
+  const { t } = useI18n();
+  const ts = t.owner.staff;
 
   function apply(nextPay: boolean, nextExp: boolean) {
     if (!nextPay && !nextExp) {
-      setErr("Au moins une autorisation requise.");
+      setErr(ts.permRequired);
       return;
     }
     setErr(null);
@@ -50,7 +53,7 @@ export function PermissionToggles({
             onChange={(e) => apply(e.target.checked, exp)}
             className="accent-[var(--color-brand)]"
           />
-          Entrées
+          {ts.permIncome}
         </label>
         <label className="flex items-center gap-1 text-xs">
           <input
@@ -60,7 +63,7 @@ export function PermissionToggles({
             onChange={(e) => apply(pay, e.target.checked)}
             className="accent-[var(--color-brand)]"
           />
-          Sorties
+          {ts.permExpenses}
         </label>
       </div>
       {err && <span className="text-[11px] text-red-600">{err}</span>}

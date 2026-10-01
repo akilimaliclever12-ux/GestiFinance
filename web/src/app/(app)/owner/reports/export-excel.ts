@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { frDate, periodLine, reportFileName, type Aggregate, type ReportData } from "./report-types";
+import { frDate, periodLine, reportFileName, reportText, type Aggregate, type ReportData } from "./report-types";
 
 const NUM_FMT = "#,##0.00";
 
@@ -12,16 +12,17 @@ function formatColumn(ws: XLSX.WorkSheet, col: number, fromRow: number) {
   }
 }
 
-function aggregateRows(title: string, data: Aggregate): (string | number)[][] {
-  const rows: (string | number)[][] = [[title], ["Libellé", "Devise", "Montant"]];
+function aggregateRows(d: ReturnType<typeof reportText>, title: string, data: Aggregate): (string | number)[][] {
+  const rows: (string | number)[][] = [[title], [d.label, d.currency, d.amount]];
   for (const l of data.lines) rows.push([l.label, l.currency, l.amount]);
-  if (data.lines.length === 0) rows.push(["Aucun mouvement sur la période."]);
-  for (const [c, v] of Object.entries(data.totals)) rows.push([`Total ${c}`, c, v]);
+  if (data.lines.length === 0) rows.push([d.noMovement]);
+  for (const [c, v] of Object.entries(data.totals)) rows.push([d.total(c), c, v]);
   rows.push([]);
   return rows;
 }
 
 export function exportReportExcel(r: ReportData) {
+  const d = reportText(r);
   const wb = XLSX.utils.book_new();
   const withRecettes = r.kind !== "depenses";
   const withDepenses = r.kind !== "recettes";
@@ -34,26 +35,26 @@ export function exportReportExcel(r: ReportData) {
     [],
   ];
   if (withRecettes) {
-    rows.push(...aggregateRows("Recettes (par type de frais)", r.recettes));
-    rows.push(...aggregateRows("Recettes (par banque)", r.parBanque));
+    rows.push(...aggregateRows(d, d.recettesByFee, r.recettes));
+    rows.push(...aggregateRows(d, d.recettesByBank, r.parBanque));
   }
-  if (withDepenses) rows.push(...aggregateRows("Dépenses (par catégorie)", r.depenses));
+  if (withDepenses) rows.push(...aggregateRows(d, d.depensesByCategory, r.depenses));
   if (r.kind === "synthese") {
-    rows.push(["Solde net par devise"], ["Devise", "", "Solde"]);
+    rows.push([d.netBalance], [d.currency, "", d.balance]);
     for (const c of r.currencies) {
       rows.push([c, "", (r.recettes.totals[c] ?? 0) - (r.depenses.totals[c] ?? 0)]);
     }
-    if (r.currencies.length === 0) rows.push(["Aucun mouvement sur la période."]);
+    if (r.currencies.length === 0) rows.push([d.noMovement]);
   }
   const summary = XLSX.utils.aoa_to_sheet(rows);
   summary["!cols"] = [{ wch: 36 }, { wch: 10 }, { wch: 18 }];
   formatColumn(summary, 2, 0);
-  XLSX.utils.book_append_sheet(wb, summary, "Rapport");
+  XLSX.utils.book_append_sheet(wb, summary, d.sheetReport);
 
   // Feuilles de détail — une ligne par opération (annulations exclues)
   if (withRecettes) {
     const ws = XLSX.utils.aoa_to_sheet([
-      ["Date", "Matricule", "Élève", "Classe", "Type de frais", "Banque", "N° bordereau", "Montant", "Devise"],
+      [d.date, d.matricule, d.student, d.className, d.feeType, d.bankCol, d.bordereauNo, d.amount, d.currency],
       ...r.payments.map((p) => [
         frDate(p.date),
         p.matricule,
@@ -68,11 +69,11 @@ export function exportReportExcel(r: ReportData) {
     ]);
     ws["!cols"] = [10, 12, 28, 16, 22, 16, 14, 14, 8].map((wch) => ({ wch }));
     formatColumn(ws, 7, 1);
-    XLSX.utils.book_append_sheet(wb, ws, "Recettes (détail)");
+    XLSX.utils.book_append_sheet(wb, ws, d.sheetRecettes);
   }
   if (withDepenses) {
     const ws = XLSX.utils.aoa_to_sheet([
-      ["Date", "Catégorie", "Bénéficiaire", "Mode de paiement", "Référence", "Montant", "Devise"],
+      [d.date, d.category, d.beneficiary, d.paymentMethod, d.reference, d.amount, d.currency],
       ...r.expenses.map((e) => [
         frDate(e.date),
         e.category,
@@ -85,7 +86,7 @@ export function exportReportExcel(r: ReportData) {
     ]);
     ws["!cols"] = [10, 22, 26, 16, 14, 14, 8].map((wch) => ({ wch }));
     formatColumn(ws, 5, 1);
-    XLSX.utils.book_append_sheet(wb, ws, "Dépenses (détail)");
+    XLSX.utils.book_append_sheet(wb, ws, d.sheetDepenses);
   }
 
   XLSX.writeFile(wb, reportFileName(r, "xlsx"));

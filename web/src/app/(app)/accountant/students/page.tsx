@@ -9,6 +9,7 @@ import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/l
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/components/Toast";
 import { CLASSES, SECTIONS } from "@/lib/classes";
+import { useI18n } from "@/i18n/client";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -16,6 +17,8 @@ const inputCls =
 export default function StudentsPage() {
   const { ctx, flush } = useOffline();
   const toast = useToast();
+  const { t } = useI18n();
+  const ts = t.accountant.students;
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
   const [schoolId, setSchoolId] = useState("");
@@ -40,7 +43,7 @@ export default function StudentsPage() {
     if (res.error) setMsg({ err: res.error });
     else {
       setMsg({});
-      toast.show("Élève enregistré.");
+      toast.show(ts.saved);
       e.currentTarget.reset();
       void flush();
     }
@@ -50,21 +53,21 @@ export default function StudentsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">Élèves</h1>
+          <h1 className="text-lg font-semibold">{ts.title}</h1>
           <p className="text-sm text-neutral-500">
-            {students.length} élève(s) {q && `pour « ${q} »`}
+            {ts.count(students.length)} {q && ts.forQuery(q)}
           </p>
         </div>
         <Link
           href="/accountant/students/import"
           className="rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand-light dark:hover:bg-brand/10"
         >
-          Importer (Excel/CSV)
+          {ts.importLink}
         </Link>
       </div>
 
       <form onSubmit={onSubmit} className={cardCls}>
-        <h2 className="mb-3 text-sm font-semibold">Nouvel élève</h2>
+        <h2 className="mb-3 text-sm font-semibold">{ts.newStudent}</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {schools.length > 1 && (
             <select className={inputCls} value={effSchool} onChange={(e) => setSchoolId(e.target.value)}>
@@ -75,16 +78,16 @@ export default function StudentsPage() {
               ))}
             </select>
           )}
-          <input name="matricule" placeholder="Matricule *" className={inputCls} required />
-          <input name="last_name" placeholder="Nom *" className={inputCls} required />
-          <input name="first_name" placeholder="Prénom *" className={inputCls} required />
+          <input name="matricule" placeholder={ts.matriculePh} className={inputCls} required />
+          <input name="last_name" placeholder={ts.lastNamePh} className={inputCls} required />
+          <input name="first_name" placeholder={ts.firstNamePh} className={inputCls} required />
           <select name="class_name" className={inputCls} defaultValue="">
-            <option value="">Classe…</option>
+            <option value="">{ts.classPh}</option>
             {CLASSES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
-          <input name="section" placeholder="Section" className={inputCls} list="sections-list" />
+          <input name="section" placeholder={ts.sectionPh} className={inputCls} list="sections-list" />
           <datalist id="sections-list">
             {SECTIONS.map((s) => (
               <option key={s} value={s} />
@@ -97,7 +100,7 @@ export default function StudentsPage() {
             disabled={!effSchool}
             className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
           >
-            Enregistrer
+            {ts.save}
           </button>
           {msg.err && <span className="text-sm text-red-600">{msg.err}</span>}
           {msg.ok && <span className="text-sm text-emerald-600">{msg.ok}</span>}
@@ -107,7 +110,7 @@ export default function StudentsPage() {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Rechercher par matricule ou nom…"
+        placeholder={ts.searchPh}
         className={inputCls + " max-w-md"}
       />
 
@@ -115,11 +118,11 @@ export default function StudentsPage() {
         <table className={`${tableCls} min-w-[640px]`}>
           <thead className={theadCls}>
             <tr>
-              <th className={thCls}>Matricule</th>
-              <th className={thCls}>Nom complet</th>
-              <th className={thCls}>Classe</th>
-              <th className={thCls}>Section</th>
-              {schools.length > 1 && <th className={thCls}>École</th>}
+              <th className={thCls}>{ts.colMatricule}</th>
+              <th className={thCls}>{ts.colFullName}</th>
+              <th className={thCls}>{ts.colClass}</th>
+              <th className={thCls}>{ts.colSection}</th>
+              {schools.length > 1 && <th className={thCls}>{ts.colSchool}</th>}
             </tr>
           </thead>
           <tbody className={tbodyCls}>
@@ -143,7 +146,7 @@ export default function StudentsPage() {
             {students.length === 0 && (
               <tr>
                 <td colSpan={5}>
-                  <EmptyState>Aucun élève. Ajoutez-en un ci-dessus ou importez un fichier.</EmptyState>
+                  <EmptyState>{ts.empty}</EmptyState>
                 </td>
               </tr>
             )}

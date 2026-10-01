@@ -2,6 +2,8 @@
 
 import { SyncStatus } from "@/components/SyncStatus";
 import { logout } from "@/app/login/actions";
+import { LangSwitch } from "@/components/LangSwitch";
+import { useI18n } from "@/i18n/client";
 
 export function AppHeader({
   roleLabel,
@@ -12,6 +14,7 @@ export function AppHeader({
   displayName: string;
   showSync: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <header className="no-print sticky top-0 z-20 bg-brand text-white shadow-md shadow-brand-dark/20">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-2.5">
@@ -29,9 +32,10 @@ export function AppHeader({
           <span className="hidden max-w-[10rem] truncate text-sm text-white/85 sm:inline">
             {displayName}
           </span>
+          <LangSwitch tone="dark" />
           <form action={logout}>
             <button className="rounded-lg border border-white/50 px-2.5 py-1.5 text-sm font-medium transition hover:bg-white/10">
-              Déconnexion
+              {t.common.logout}
             </button>
           </form>
         </div>

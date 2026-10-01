@@ -1,3 +1,7 @@
+"use client";
+
+import { useI18n } from "@/i18n/client";
+
 export interface SchoolLetterhead {
   name: string;
   official_name: string | null;
@@ -11,12 +15,18 @@ export interface SchoolLetterhead {
   logo_url: string | null;
 }
 
-/** En-tête officiel d'une école, pour coiffer un rapport imprimable. */
+/**
+ * En-tête officiel d'une école, pour coiffer un rapport imprimable.
+ * Composant client (libellés traduits via useI18n) : utilisable depuis un
+ * composant serveur, ses props étant de simples données.
+ */
 export function Letterhead({ school }: { school: SchoolLetterhead }) {
+  const { locale, t } = useI18n();
+  const lh = t.auth.components.letterhead;
   const contact = [
     school.address,
-    school.bp ? `B.P. ${school.bp}` : null,
-    school.phone ? `Tél : ${school.phone}` : null,
+    school.bp ? `${lh.bp} ${school.bp}` : null,
+    school.phone ? `${lh.tel} ${school.phone}` : null,
     school.email,
   ]
     .filter(Boolean)
@@ -40,7 +50,7 @@ export function Letterhead({ school }: { school: SchoolLetterhead }) {
         </div>
       </div>
 
-      {school.motto && <p className="mt-1 text-[11px] italic text-neutral-600">« {school.motto} »</p>}
+      {school.motto && <p className="mt-1 text-[11px] italic text-neutral-600">{locale === "en" ? `“${school.motto}”` : `« ${school.motto} »`}</p>}
     </div>
   );
 }

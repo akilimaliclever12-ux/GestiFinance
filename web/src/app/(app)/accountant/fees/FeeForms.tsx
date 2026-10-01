@@ -7,6 +7,7 @@ import { cardCls } from "@/lib/ui";
 import { CLASSES } from "@/lib/classes";
 import type { SchoolRef } from "@/lib/data";
 import type { CurrencyCode } from "@/lib/types";
+import { useI18n } from "@/i18n/client";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
@@ -23,17 +24,18 @@ export interface FeeTypeRef {
 export function FeeTypeForm({ schools }: { schools: SchoolRef[] }) {
   const [state, action, pending] = useActionState(createFeeType, null);
   useToastOnSuccess(state);
+  const tf = useI18n().t.accountant.fees;
   return (
     <form
       action={action}
       className={cardCls}
     >
-      <h2 className="mb-3 text-sm font-semibold">Nouveau type de frais</h2>
+      <h2 className="mb-3 text-sm font-semibold">{tf.newType}</h2>
       <div className="grid gap-3 sm:grid-cols-3">
         {schools.length > 1 ? (
           <select name="school_id" className={inputCls} required defaultValue="">
             <option value="" disabled>
-              École…
+              {tf.schoolPh}
             </option>
             {schools.map((s) => (
               <option key={s.id} value={s.id}>
@@ -44,7 +46,7 @@ export function FeeTypeForm({ schools }: { schools: SchoolRef[] }) {
         ) : (
           <input type="hidden" name="school_id" value={schools[0]?.id ?? ""} />
         )}
-        <input name="name" placeholder="Ex. Minerval, Inscription…" className={inputCls} required />
+        <input name="name" placeholder={tf.namePh} className={inputCls} required />
         <select name="currency" className={inputCls} defaultValue="CDF">
           {CURRENCIES.map((c) => (
             <option key={c} value={c}>
@@ -58,7 +60,7 @@ export function FeeTypeForm({ schools }: { schools: SchoolRef[] }) {
           disabled={pending}
           className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
         >
-          {pending ? "…" : "Créer le type"}
+          {pending ? "…" : tf.createType}
         </button>
         {state?.error && <span className="text-sm text-red-600">{state.error}</span>}
         {state?.success && <span className="text-sm text-emerald-600">{state.success}</span>}
@@ -70,12 +72,13 @@ export function FeeTypeForm({ schools }: { schools: SchoolRef[] }) {
 export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
   const [state, action, pending] = useActionState(createFeeSchedule, null);
   useToastOnSuccess(state);
+  const tf = useI18n().t.accountant.fees;
   const [schoolId, setSchoolId] = useState(feeTypes[0]?.school_id ?? "");
 
   if (feeTypes.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700">
-        Créez d&apos;abord un type de frais pour définir un barème.
+        {tf.createTypeFirst}
       </p>
     );
   }
@@ -85,7 +88,7 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
       action={action}
       className={cardCls}
     >
-      <h2 className="mb-3 text-sm font-semibold">Nouveau barème (montant attendu)</h2>
+      <h2 className="mb-3 text-sm font-semibold">{tf.newSchedule}</h2>
       <input type="hidden" name="school_id" value={schoolId} />
       <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <select
@@ -105,7 +108,7 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
           ))}
         </select>
         <select name="class_name" className={inputCls} defaultValue="">
-          <option value="">Toutes les classes</option>
+          <option value="">{tf.allClassesOption}</option>
           {CLASSES.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
@@ -115,13 +118,13 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
           type="number"
           min="0"
           step="0.01"
-          placeholder="Montant attendu *"
+          placeholder={tf.amountPh}
           className={inputCls}
           required
         />
         <label className="block">
           <span className="mb-1 block text-xs text-neutral-500">
-            Échéance (vide = exigible tout de suite)
+            {tf.dueLabel}
           </span>
           <input name="due_date" type="date" className={`w-full ${inputCls}`} />
         </label>
@@ -131,10 +134,10 @@ export function FeeScheduleForm({ feeTypes }: { feeTypes: FeeTypeRef[] }) {
           disabled={pending}
           className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
         >
-          {pending ? "…" : "Ajouter le barème"}
+          {pending ? "…" : tf.addSchedule}
         </button>
         <span className="text-xs text-neutral-500">
-          Un élève n&apos;est « non en ordre » que pour les tranches dont l&apos;échéance est passée.
+          {tf.scheduleHint}
         </span>
         {state?.error && <span className="text-sm text-red-600">{state.error}</span>}
         {state?.success && <span className="text-sm text-emerald-600">{state.success}</span>}

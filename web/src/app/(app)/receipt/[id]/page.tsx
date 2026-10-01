@@ -3,9 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { PrintButton } from "@/components/PrintButton";
 import type { CurrencyCode } from "@/lib/types";
-
-const money = (n: number, c: string) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
+import { getI18n } from "@/i18n/server";
+import { formatIsoDate, formatMoney } from "@/i18n/format";
 
 export default async function ReceiptPage({
   params,
@@ -13,6 +12,8 @@ export default async function ReceiptPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { locale, t } = await getI18n();
+  const tr = t.receipt;
   const supabase = await createClient();
 
   const { data: p } = await supabase
@@ -29,9 +30,9 @@ export default async function ReceiptPage({
   if (!p) {
     return (
       <div className="mx-auto max-w-md p-6 text-center">
-        <p className="text-neutral-500">Reçu introuvable ou accès non autorisé.</p>
+        <p className="text-neutral-500">{tr.notFound}</p>
         <Link href="/accountant/payments" className="mt-2 inline-block text-sm text-brand hover:underline">
-          ← Retour
+          {t.common.back}
         </Link>
       </div>
     );
@@ -67,9 +68,9 @@ export default async function ReceiptPage({
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="no-print flex items-center justify-between">
         <Link href="/accountant/payments" className="text-sm text-brand hover:underline">
-          ← Retour aux paiements
+          {tr.backToPayments}
         </Link>
-        <PrintButton />
+        <PrintButton label={t.common.print} />
       </div>
 
       {/* Reçu */}
@@ -84,7 +85,7 @@ export default async function ReceiptPage({
             )}
             <div>
               <p className="text-lg font-bold text-brand">
-                {pay.schools?.official_name || pay.schools?.name || "École"}
+                {pay.schools?.official_name || pay.schools?.name || t.common.school}
               </p>
               {pay.schools?.address && (
                 <p className="text-xs text-neutral-500">{pay.schools.address}</p>
@@ -92,44 +93,44 @@ export default async function ReceiptPage({
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-semibold">REÇU DE PAIEMENT</p>
-            <p className="text-xs text-neutral-500">N° {receiptNo}</p>
+            <p className="text-sm font-semibold">{tr.title}</p>
+            <p className="text-xs text-neutral-500">{tr.number(receiptNo)}</p>
           </div>
         </header>
 
         <div className="grid grid-cols-2 gap-4 py-5 text-sm">
-          <Field label="Élève">
+          <Field label={tr.student}>
             {pay.students
               ? `${pay.students.last_name} ${pay.students.first_name}`
-              : "—"}
+              : t.common.none}
           </Field>
-          <Field label="Matricule">{pay.students?.matricule ?? "—"}</Field>
-          <Field label="Classe">
-            {pay.students?.class_name ?? "—"}
+          <Field label={tr.matricule}>{pay.students?.matricule ?? t.common.none}</Field>
+          <Field label={tr.className}>
+            {pay.students?.class_name ?? t.common.none}
             {pay.students?.section ? ` — ${pay.students.section}` : ""}
           </Field>
-          <Field label="Date de paiement">{pay.paid_at}</Field>
-          <Field label="Type de frais">{pay.fee_types?.name ?? "—"}</Field>
-          <Field label="Banque">{pay.banks?.name ?? "—"}</Field>
-          <Field label="N° bordereau">{pay.bordereau_no ?? "—"}</Field>
-          {pay.note && <Field label="Note">{pay.note}</Field>}
+          <Field label={tr.paidAt}>{formatIsoDate(pay.paid_at)}</Field>
+          <Field label={tr.feeType}>{pay.fee_types?.name ?? t.common.none}</Field>
+          <Field label={tr.bank}>{pay.banks?.name ?? t.common.none}</Field>
+          <Field label={tr.bordereau}>{pay.bordereau_no ?? t.common.none}</Field>
+          {pay.note && <Field label={tr.note}>{pay.note}</Field>}
         </div>
 
         <div className="flex items-center justify-between rounded-lg bg-brand-light px-5 py-4">
-          <span className="text-sm font-medium text-neutral-700">Montant payé</span>
+          <span className="text-sm font-medium text-neutral-700">{tr.amountPaid}</span>
           <span className="text-2xl font-bold text-brand">
-            {money(pay.amount, pay.currency)}
+            {formatMoney(locale, pay.amount, pay.currency)}
           </span>
         </div>
 
         <footer className="mt-8 flex items-end justify-between text-xs text-neutral-500">
           <div>
             <div className="mb-1 h-10 w-40 border-b border-neutral-300" />
-            Signature du comptable
+            {tr.signature}
           </div>
           <div className="text-right">
-            <p>Émis via GestiFinance</p>
-            <p>Vérification QR — à venir</p>
+            <p>{tr.issuedBy}</p>
+            <p>{tr.qrSoon}</p>
           </div>
         </footer>
       </div>

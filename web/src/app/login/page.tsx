@@ -4,9 +4,13 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { login } from "./actions";
 import { Logo } from "@/components/Logo";
+import { LangSwitch } from "@/components/LangSwitch";
+import { useI18n } from "@/i18n/client";
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, null);
+  const { t } = useI18n();
+  const l = t.auth.login;
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-50 p-4 dark:bg-neutral-950">
@@ -14,13 +18,17 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-brand/15 blur-3xl dark:bg-brand/10" />
 
       <div className="relative w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-lg shadow-neutral-200/60 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-black/40">
+        <div className="absolute right-4 top-4">
+          <LangSwitch tone="light" />
+        </div>
+
         <div className="mb-7 flex flex-col items-center text-center">
           <Logo size={76} />
           <h1 className="mt-3 text-2xl font-bold tracking-tight">
             <span className="text-brand">Gesti</span>
             <span className="text-neutral-900 dark:text-neutral-100">Finance</span>
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">Gestion des finances scolaires</p>
+          <p className="mt-1 text-sm text-neutral-500">{t.common.appTagline}</p>
         </div>
 
         <form action={formAction} className="space-y-4">
@@ -29,7 +37,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
             >
-              Email
+              {l.email}
             </label>
             <input
               id="email"
@@ -46,7 +54,7 @@ export default function LoginPage() {
               htmlFor="password"
               className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300"
             >
-              Mot de passe
+              {l.password}
             </label>
             <input
               id="password"
@@ -72,14 +80,14 @@ export default function LoginPage() {
             disabled={pending}
             className="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark disabled:opacity-60"
           >
-            {pending ? "Connexion…" : "Se connecter"}
+            {pending ? l.submitting : l.submit}
           </button>
         </form>
 
         <p className="mt-5 text-center text-sm text-neutral-500">
-          Pas encore d&apos;espace ?{" "}
+          {l.noSpace}{" "}
           <Link href="/signup" className="font-medium text-brand hover:underline">
-            Créer un espace
+            {l.createSpace}
           </Link>
         </p>
       </div>

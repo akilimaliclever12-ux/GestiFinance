@@ -5,6 +5,7 @@ import { getSessionProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AppRole } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
 
 type State = { error?: string; success?: string } | null;
 
@@ -15,8 +16,10 @@ async function requireOwner() {
 }
 
 export async function createStaff(_prev: State, formData: FormData): Promise<State> {
+  const { t } = await getI18n();
+  const ta = t.owner.actions;
   const owner = await requireOwner();
-  if (!owner) return { error: "Réservé au promoteur." };
+  if (!owner) return { error: ta.ownerOnly };
   const tenantId = owner.tenant_id;
 
   const full_name = String(formData.get("full_name") ?? "").trim();
@@ -27,15 +30,15 @@ export async function createStaff(_prev: State, formData: FormData): Promise<Sta
   const can_expenses = formData.get("can_expenses") != null;
   const schoolIds = formData.getAll("school_ids").map((s) => String(s));
 
-  if (!full_name || !email) return { error: "Nom et email obligatoires." };
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Email invalide." };
+  if (!full_name || !email) return { error: ta.nameEmailRequired };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: ta.invalidEmail };
   if (password.length < 6)
-    return { error: "Le mot de passe doit faire au moins 6 caractères." };
+    return { error: ta.passwordTooShort };
   if (role !== "accountant" && role !== "controller")
-    return { error: "Rôle invalide." };
-  if (schoolIds.length === 0) return { error: "Sélectionnez au moins une école." };
+    return { error: ta.invalidRole };
+  if (schoolIds.length === 0) return { error: ta.selectSchool };
   if (role === "accountant" && !can_payments && !can_expenses)
-    return { error: "Un comptable doit pouvoir faire au moins les entrées ou les sorties." };
+    return { error: ta.accountantNeedsPermission };
 
   const supabase = await createClient();
   const { data: mySchools } = await supabase
@@ -44,7 +47,7 @@ export async function createStaff(_prev: State, formData: FormData): Promise<Sta
     .is("deleted_at", null);
   const allowed = new Set((mySchools ?? []).map((s) => s.id as string));
   const targetSchools = schoolIds.filter((id) => allowed.has(id));
-  if (targetSchools.length === 0) return { error: "Écoles invalides." };
+  if (targetSchools.length === 0) return { error: ta.invalidSchools };
 
   const admin = createAdminClient();
 
@@ -55,9 +58,9 @@ export async function createStaff(_prev: State, formData: FormData): Promise<Sta
     user_metadata: { full_name },
   });
   if (authErr || !created?.user) {
-    const msg = authErr?.message ?? "Création du compte impossible.";
+    const msg = authErr?.message ?? ta.accountCreateFailed;
     if (/already|exist|registered/i.test(msg))
-      return { error: `Un compte existe déjà avec l'email ${email}.` };
+      return { error: ta.emailExists(email) };
     return { error: msg };
   }
   const userId = created.user.id;
@@ -74,16 +77,15 @@ export async function createStaff(_prev: State, formData: FormData): Promise<Sta
   });
   if (profErr) {
     await admin.auth.admin.deleteUser(userId).catch(() => {});
-    return { error: `Profil : ${profErr.message}` };
+    return { error: ta.profileError(profErr.message) };
   }
 
   const links = targetSchools.map((school_id) => ({ user_id: userId, school_id }));
   const { error: linkErr } = await admin.from("user_schools").insert(links);
-  if (linkErr) return { error: `Rattachement écoles : ${linkErr.message}` };
+  if (linkErr) return { error: ta.linkError(linkErr.message) };
 
   revalidatePath("/owner/staff");
-  const roleLabel = role === "accountant" ? "Comptable" : "Directeur";
-  return { success: `${roleLabel} ${full_name} créé (${email}).` };
+  return { success: ta.staffCreated(role, full_name, email) };
 }
 
 /** Le promoteur modifie les permissions d'un comptable existant. */
@@ -93,7 +95,7 @@ export async function updateStaffPermissions(
   canExpenses: boolean,
 ): Promise<{ error?: string; success?: boolean }> {
   const owner = await requireOwner();
-  if (!owner) return { error: "Réservé au promoteur." };
+  if (!owner) return { error: (await getI18n()).t.owner.actions.ownerOnly };
 
   const admin = createAdminClient();
   const { error } = await admin

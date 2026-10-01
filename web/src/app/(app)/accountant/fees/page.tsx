@@ -3,6 +3,8 @@ import { getMySchools } from "@/lib/data";
 import { FeeTypeForm, FeeScheduleForm, type FeeTypeRef } from "./FeeForms";
 import { cardCls } from "@/lib/ui";
 import type { CurrencyCode } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
+import { formatMoney, formatIsoDate } from "@/i18n/format";
 
 type FeeTypeRow = {
   id: string;
@@ -18,12 +20,11 @@ type ScheduleRow = {
   due_date: string | null;
 };
 
-const fmt = (n: number, c: CurrencyCode) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
-
 export default async function FeesPage() {
   const supabase = await createClient();
   const schools = await getMySchools();
+  const { locale, t } = await getI18n();
+  const tf = t.accountant.fees;
   const schoolName = new Map(schools.map((s) => [s.id, s.name]));
 
   const [{ data: types }, { data: schedules }] = await Promise.all([
@@ -50,9 +51,9 @@ export default async function FeesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold">Frais scolaires</h1>
+        <h1 className="text-lg font-semibold">{tf.title}</h1>
         <p className="text-sm text-neutral-500">
-          Définissez les types de frais et les montants attendus par classe.
+          {tf.subtitle}
         </p>
       </div>
 
@@ -78,23 +79,23 @@ export default async function FeesPage() {
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-neutral-500">
                 <tr>
-                  <th className="py-1">Classe</th>
-                  <th className="py-1">Montant attendu</th>
-                  <th className="py-1">Échéance</th>
+                  <th className="py-1">{tf.colClass}</th>
+                  <th className="py-1">{tf.colExpected}</th>
+                  <th className="py-1">{tf.colDue}</th>
                 </tr>
               </thead>
               <tbody>
                 {(byType.get(ft.id) ?? []).map((s) => (
                   <tr key={s.id} className="border-t border-neutral-100 dark:border-neutral-800">
-                    <td className="py-1.5">{s.class_name ?? "Toutes"}</td>
-                    <td className="py-1.5 font-medium">{fmt(s.amount_expected, ft.currency)}</td>
-                    <td className="py-1.5 text-neutral-500">{s.due_date ?? "—"}</td>
+                    <td className="py-1.5">{s.class_name ?? tf.allClasses}</td>
+                    <td className="py-1.5 font-medium">{formatMoney(locale, s.amount_expected, ft.currency)}</td>
+                    <td className="py-1.5 text-neutral-500">{s.due_date ? formatIsoDate(s.due_date) : "—"}</td>
                   </tr>
                 ))}
                 {(byType.get(ft.id) ?? []).length === 0 && (
                   <tr>
                     <td colSpan={3} className="py-1.5 text-neutral-500">
-                      Aucun barème défini.
+                      {tf.noSchedule}
                     </td>
                   </tr>
                 )}
@@ -103,7 +104,7 @@ export default async function FeesPage() {
           </div>
         ))}
         {feeTypes.length === 0 && (
-          <p className="text-sm text-neutral-500">Aucun type de frais pour le moment.</p>
+          <p className="text-sm text-neutral-500">{tf.noTypes}</p>
         )}
       </div>
     </div>

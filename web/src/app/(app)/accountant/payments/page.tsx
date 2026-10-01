@@ -14,11 +14,11 @@ import {
 import { db, type StudentRow } from "@/lib/offline/db";
 import { cardCls, tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
 import { EmptyState } from "@/components/EmptyState";
+import { useI18n } from "@/i18n/client";
+import { formatMoney, formatIsoDate } from "@/i18n/format";
 
 const inputCls =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-800";
-const money = (n: number, c: string) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 
 export default function PaymentsPage({
   searchParams,
@@ -27,6 +27,9 @@ export default function PaymentsPage({
 }) {
   const { student: preselect } = use(searchParams);
   const { ctx, flush, perms } = useOffline();
+  const { locale, t } = useI18n();
+  const tp = t.accountant.payments;
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Résolution des noms pour l'historique
@@ -100,8 +103,7 @@ export default function PaymentsPage({
   if (!perms.canPayments) {
     return (
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-        Vous n&apos;êtes pas autorisé à enregistrer les paiements. Contactez le
-        promoteur.
+        {tp.notAllowed}
       </div>
     );
   }
@@ -109,43 +111,41 @@ export default function PaymentsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold">Paiements</h1>
+        <h1 className="text-lg font-semibold">{tp.title}</h1>
         <p className="text-sm text-neutral-500">
-          Enregistrez un bordereau. Fonctionne hors-ligne ; le solde est calculé
-          localement et tout se synchronise au retour du réseau.
+          {tp.subtitle}
         </p>
       </div>
 
       {savedId ? (
         <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-5 dark:border-emerald-800 dark:bg-emerald-950/40">
           <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-            ✓ Paiement enregistré.
+            {tp.saved}
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link
               href={`/receipt/${savedId}`}
               className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
             >
-              Voir / imprimer le reçu
+              {tp.viewReceipt}
             </Link>
             <button
               onClick={resetForm}
               className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
             >
-              Enregistrer un autre paiement
+              {tp.another}
             </button>
           </div>
           <p className="mt-2 text-xs text-neutral-500">
-            Le reçu est disponible en ligne (après synchronisation si vous êtes
-            hors-ligne).
+            {tp.receiptNote}
           </p>
         </div>
       ) : (
         <form onSubmit={onSubmit} className={cardCls}>
-          <h2 className="mb-3 text-sm font-semibold">Enregistrer un paiement</h2>
+          <h2 className="mb-3 text-sm font-semibold">{tp.formTitle}</h2>
 
           <div className="relative mb-3">
-            <label className="mb-1 block text-xs text-neutral-500">Élève *</label>
+            <label className="mb-1 block text-xs text-neutral-500">{tp.studentLabel}</label>
             <input
               value={query}
               onChange={(e) => {
@@ -153,7 +153,7 @@ export default function PaymentsPage({
                 setStudent(null);
                 setContext(null);
               }}
-              placeholder="Matricule ou nom…"
+              placeholder={tp.studentPh}
               className={inputCls}
               autoComplete="off"
             />
@@ -181,14 +181,14 @@ export default function PaymentsPage({
 
           {context && context.fees.length === 0 && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
-              Aucun frais défini pour cette école (onglet Frais).
+              {tp.noFees}
             </p>
           )}
 
           {context && context.fees.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Type de frais *</label>
+                <label className="mb-1 block text-xs text-neutral-500">{tp.feeTypeLabel}</label>
                 <select
                   value={feeTypeId}
                   onChange={(e) => setFeeTypeId(e.target.value)}
@@ -202,17 +202,17 @@ export default function PaymentsPage({
                 </select>
                 {selectedFee && (
                   <p className="mt-1 text-xs text-neutral-500">
-                    Attendu : {money(selectedFee.total_expected, selectedFee.currency)} · Payé :{" "}
-                    {money(selectedFee.total_paid, selectedFee.currency)} ·{" "}
+                    {tp.expected(money(selectedFee.total_expected, selectedFee.currency))} ·{" "}
+                    {tp.paid(money(selectedFee.total_paid, selectedFee.currency))} ·{" "}
                     <span className={selectedFee.balance > 0 ? "font-semibold text-red-600" : "font-semibold text-emerald-600"}>
-                      Reste : {money(selectedFee.balance, selectedFee.currency)}
+                      {tp.remaining(money(selectedFee.balance, selectedFee.currency))}
                     </span>
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Banque</label>
+                <label className="mb-1 block text-xs text-neutral-500">{tp.bankLabel}</label>
                 <select name="bank_id" className={inputCls} defaultValue="">
                   <option value="">—</option>
                   {context.banks.map((b) => (
@@ -224,13 +224,13 @@ export default function PaymentsPage({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">N° bordereau</label>
-                <input name="bordereau_no" className={inputCls} placeholder="Ex. BRD-000123" />
+                <label className="mb-1 block text-xs text-neutral-500">{tp.bordereauLabel}</label>
+                <input name="bordereau_no" className={inputCls} placeholder={tp.bordereauPh} />
               </div>
 
               <div>
                 <label className="mb-1 block text-xs text-neutral-500">
-                  Montant * {selectedFee ? `(${selectedFee.currency})` : ""}
+                  {tp.amountLabel} {selectedFee ? `(${selectedFee.currency})` : ""}
                 </label>
                 <input
                   name="amount"
@@ -245,19 +245,19 @@ export default function PaymentsPage({
                 />
                 {selectedFee && (
                   <p className="mt-1 text-[11px] text-neutral-400">
-                    Maximum : {new Intl.NumberFormat("fr-FR").format(selectedFee.balance)} {selectedFee.currency}
+                    {tp.maximum(money(selectedFee.balance, selectedFee.currency))}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Date *</label>
+                <label className="mb-1 block text-xs text-neutral-500">{tp.dateLabel}</label>
                 <input name="paid_at" type="date" className={inputCls} defaultValue={today} required />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Note</label>
-                <input name="note" className={inputCls} placeholder="Optionnel" />
+                <label className="mb-1 block text-xs text-neutral-500">{tp.noteLabel}</label>
+                <input name="note" className={inputCls} placeholder={tp.notePh} />
               </div>
             </div>
           )}
@@ -268,7 +268,7 @@ export default function PaymentsPage({
                 type="submit"
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark"
               >
-                Enregistrer le paiement
+                {tp.submit}
               </button>
               {err && <span className="text-sm text-red-600">{err}</span>}
             </div>
@@ -278,24 +278,24 @@ export default function PaymentsPage({
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-          Derniers paiements
+          {tp.recentTitle}
         </h2>
         <div className="overflow-x-auto">
           <table className={`${tableCls} min-w-[720px]`}>
             <thead className={theadCls}>
               <tr>
-                <th className={thCls}>Date</th>
-                <th className={thCls}>Élève</th>
-                <th className={thCls}>Frais</th>
-                <th className={thCls}>Bordereau</th>
-                <th className={thCls}>Montant</th>
-                <th className={thCls}>Reçu</th>
+                <th className={thCls}>{tp.colDate}</th>
+                <th className={thCls}>{tp.colStudent}</th>
+                <th className={thCls}>{tp.colFee}</th>
+                <th className={thCls}>{tp.colBordereau}</th>
+                <th className={thCls}>{tp.colAmount}</th>
+                <th className={thCls}>{tp.colReceipt}</th>
               </tr>
             </thead>
             <tbody className={tbodyCls}>
               {(recent ?? []).map((p) => (
                 <tr key={p.id} className={`${rowCls} ${p.cancelled ? "opacity-50" : ""}`}>
-                  <td className={`${tdCls} whitespace-nowrap`}>{p.paid_at}</td>
+                  <td className={`${tdCls} whitespace-nowrap`}>{formatIsoDate(p.paid_at)}</td>
                   <td className={tdCls}>{studentName.get(p.student_id) ?? "—"}</td>
                   <td className={tdCls}>{feeName.get(p.fee_type_id) ?? "—"}</td>
                   <td className={`${tdCls} font-mono text-xs`}>{p.bordereau_no ?? "—"}</td>
@@ -303,13 +303,13 @@ export default function PaymentsPage({
                     {money(p.amount, p.currency)}
                     {p.cancelled && (
                       <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
-                        Annulé
+                        {tp.cancelled}
                       </span>
                     )}
                   </td>
                   <td className={tdCls}>
                     <Link href={`/receipt/${p.id}`} className="font-medium text-brand hover:underline">
-                      Reçu
+                      {tp.receipt}
                     </Link>
                   </td>
                 </tr>
@@ -317,7 +317,7 @@ export default function PaymentsPage({
               {(!recent || recent.length === 0) && (
                 <tr>
                   <td colSpan={6}>
-                    <EmptyState>Aucun paiement enregistré.</EmptyState>
+                    <EmptyState>{tp.empty}</EmptyState>
                   </td>
                 </tr>
               )}

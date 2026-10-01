@@ -4,13 +4,14 @@ import { Letterhead, type SchoolLetterhead } from "@/components/Letterhead";
 import { PrintButton } from "@/components/PrintButton";
 import { ExportButtons } from "./ExportButtons";
 import { fetchAll } from "@/lib/fetch-all";
-import { PAYMENT_METHOD_LABELS, type CurrencyCode, type PaymentMethod } from "@/lib/types";
+import type { CurrencyCode, PaymentMethod } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
+import { formatIsoDate, formatMoney } from "@/i18n/format";
+import type { Locale } from "@/i18n/config";
+import type { Messages } from "@/i18n/messages";
 import type { Aggregate, ExpenseDetail, Kind, Line, PaymentDetail, ReportData } from "./report-types";
 
-const money = (n: number, c: string) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
 const pad = (n: number) => String(n).padStart(2, "0");
-const NO_BANK = "Banque non renseignée";
 
 function aggregate(rows: Line[]): Aggregate {
   const byKey = new Map<string, Line>();
@@ -55,6 +56,10 @@ export default async function ReportsPage({
   searchParams: Promise<{ school?: string; from?: string; to?: string; type?: string; bank?: string }>;
 }) {
   const sp = await searchParams;
+  const { locale, t } = await getI18n();
+  const d = t.reports.doc;
+  const NO_BANK = d.noBank;
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
   const supabase = await createClient();
   const schools = await getMySchools();
 
@@ -142,26 +147,26 @@ export default async function ReportsPage({
   const exps = expInRange.filter((e) => !expCancelled.has(e.id));
 
   const recettes = aggregate(
-    pays.map((p) => ({ label: p.fee_types?.name ?? "Autre", currency: p.currency, amount: Number(p.amount) })),
+    pays.map((p) => ({ label: p.fee_types?.name ?? t.common.other, currency: p.currency, amount: Number(p.amount) })),
   );
   const parBanque = aggregate(
     pays.map((p) => ({ label: p.banks?.name ?? NO_BANK, currency: p.currency, amount: Number(p.amount) })),
   );
   const depenses = aggregate(
-    exps.map((e) => ({ label: e.expense_categories?.name ?? "Autre", currency: e.currency, amount: Number(e.amount) })),
+    exps.map((e) => ({ label: e.expense_categories?.name ?? t.common.other, currency: e.currency, amount: Number(e.amount) })),
   );
 
   const currencies = [...new Set([...Object.keys(recettes.totals), ...Object.keys(depenses.totals)])];
 
   const title =
-    type === "recettes" ? "RAPPORT DES RECETTES" : type === "depenses" ? "RAPPORT DES DÉPENSES" : "RAPPORT FINANCIER";
+    type === "recettes" ? d.titleRecettes : type === "depenses" ? d.titleDepenses : d.titleSynthese;
 
   const payments: PaymentDetail[] = pays.map((p) => ({
     date: p.paid_at,
     matricule: p.students?.matricule ?? "",
     student: p.students ? `${p.students.last_name} ${p.students.first_name}` : "",
     className: p.students?.class_name ?? "",
-    fee: p.fee_types?.name ?? "Autre",
+    fee: p.fee_types?.name ?? t.common.other,
     bank: p.banks?.name ?? "",
     bordereau: p.bordereau_no ?? "",
     amount: Number(p.amount),
@@ -169,15 +174,16 @@ export default async function ReportsPage({
   }));
   const expenses: ExpenseDetail[] = exps.map((e) => ({
     date: e.paid_at,
-    category: e.expense_categories?.name ?? "Autre",
+    category: e.expense_categories?.name ?? t.common.other,
     beneficiary: e.beneficiary ?? "",
-    method: e.payment_method ? PAYMENT_METHOD_LABELS[e.payment_method] : "",
+    method: e.payment_method ? t.common.paymentMethods[e.payment_method] : "",
     reference: e.reference ?? "",
     amount: Number(e.amount),
     currency: e.currency,
   }));
   const report: ReportData | null = school
     ? {
+        locale,
         school: school as SchoolLetterhead,
         kind: type,
         title,
@@ -197,10 +203,10 @@ export default async function ReportsPage({
     <div className="space-y-5">
       {/* Filtres */}
       <form method="get" className="no-print rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-        <h1 className="mb-3 text-lg font-semibold">Rapports</h1>
+        <h1 className="mb-3 text-lg font-semibold">{t.reports.page.heading}</h1>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">École</span>
+            <span className="mb-1 block text-xs text-neutral-500">{t.common.school}</span>
             <select name="school" defaultValue={schoolId} className={selectCls}>
               {schools.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -210,17 +216,17 @@ export default async function ReportsPage({
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">Type</span>
+            <span className="mb-1 block text-xs text-neutral-500">{t.reports.page.type}</span>
             <select name="type" defaultValue={type} className={selectCls}>
-              <option value="synthese">Synthèse (recettes + dépenses + solde)</option>
-              <option value="recettes">Recettes</option>
-              <option value="depenses">Dépenses</option>
+              <option value="synthese">{t.reports.page.typeSynthese}</option>
+              <option value="recettes">{t.reports.page.typeRecettes}</option>
+              <option value="depenses">{t.reports.page.typeDepenses}</option>
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">Banque (recettes)</span>
+            <span className="mb-1 block text-xs text-neutral-500">{t.reports.page.bank}</span>
             <select name="bank" defaultValue={bank} className={selectCls}>
-              <option value="">Toutes les banques</option>
+              <option value="">{t.reports.page.allBanks}</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -230,33 +236,28 @@ export default async function ReportsPage({
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">Du</span>
+            <span className="mb-1 block text-xs text-neutral-500">{t.reports.page.from}</span>
             <input type="date" name="from" defaultValue={from} className={selectCls} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-neutral-500">Au</span>
+            <span className="mb-1 block text-xs text-neutral-500">{t.reports.page.to}</span>
             <input type="date" name="to" defaultValue={to} className={selectCls} />
           </label>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
-            Générer
+            {t.reports.page.generate}
           </button>
-          <PrintButton />
+          <PrintButton label={t.common.print} />
           {report && <ExportButtons report={report} />}
         </div>
         {bank && sp.type && sp.type !== "recettes" && (
-          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
-            Les dépenses ne sont pas rattachées à une banque : avec un filtre banque, le rapport
-            porte uniquement sur les recettes.
-          </p>
+          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">{t.reports.page.bankFilterNote}</p>
         )}
       </form>
 
       {!school ? (
-        <p className="text-sm text-neutral-500">
-          Aucune école. Créez-en une (onglet Écoles) pour générer un rapport.
-        </p>
+        <p className="text-sm text-neutral-500">{t.reports.page.noSchool}</p>
       ) : (
         <div className="rounded-xl border border-neutral-300 bg-white p-8 text-neutral-900 print:border-0 print:p-0">
           <Letterhead school={school as SchoolLetterhead} />
@@ -264,26 +265,26 @@ export default async function ReportsPage({
           <div className="mt-4 text-center">
             <h2 className="text-base font-bold">{title}</h2>
             <p className="text-xs text-neutral-600">
-              Période du {from} au {to}
-              {bankLabel && <> — Banque : {bankLabel}</>}
+              {d.period(formatIsoDate(from), formatIsoDate(to))}
+              {bankLabel && d.bankSuffix(bankLabel)}
             </p>
           </div>
 
           {(type === "synthese" || type === "recettes") && (
             <>
-              <Section title="Recettes (par type de frais)" data={recettes} sign="" />
-              <Section title="Recettes (par banque)" data={parBanque} sign="" />
+              <Section title={d.recettesByFee} data={recettes} sign="" locale={locale} d={d} />
+              <Section title={d.recettesByBank} data={parBanque} sign="" locale={locale} d={d} />
             </>
           )}
           {(type === "synthese" || type === "depenses") && (
-            <Section title="Dépenses (par catégorie)" data={depenses} sign="−" />
+            <Section title={d.depensesByCategory} data={depenses} sign="−" locale={locale} d={d} />
           )}
 
           {type === "synthese" && (
             <div className="mt-6 rounded-lg bg-brand-light px-5 py-3">
-              <p className="mb-1 text-sm font-semibold">Solde net par devise</p>
+              <p className="mb-1 text-sm font-semibold">{d.netBalance}</p>
               {currencies.length === 0 ? (
-                <p className="text-sm text-neutral-500">Aucun mouvement sur la période.</p>
+                <p className="text-sm text-neutral-500">{d.noMovement}</p>
               ) : (
                 <ul className="space-y-0.5">
                   {currencies.map((c) => {
@@ -305,9 +306,9 @@ export default async function ReportsPage({
           <footer className="mt-10 flex items-end justify-between text-xs text-neutral-500">
             <div>
               <div className="mb-1 h-10 w-44 border-b border-neutral-300" />
-              Le Promoteur
+              {d.signature}
             </div>
-            <p>Édité via GestiFinance</p>
+            <p>{t.common.signedBy}</p>
           </footer>
         </div>
       )}
@@ -322,11 +323,16 @@ function Section({
   title,
   data,
   sign,
+  locale,
+  d,
 }: {
   title: string;
   data: { lines: Line[]; totals: Record<string, number> };
   sign: string;
+  locale: Locale;
+  d: Messages["reports"]["doc"];
 }) {
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
   return (
     <div className="mt-6">
       <h3 className="mb-1 text-sm font-semibold">{title}</h3>
@@ -343,7 +349,7 @@ function Section({
           ))}
           {data.lines.length === 0 && (
             <tr>
-              <td className="py-1.5 text-neutral-500">Aucun mouvement sur la période.</td>
+              <td className="py-1.5 text-neutral-500">{d.noMovement}</td>
             </tr>
           )}
         </tbody>
@@ -351,7 +357,7 @@ function Section({
           <tfoot>
             {Object.entries(data.totals).map(([c, v]) => (
               <tr key={c} className="border-t-2 border-neutral-300">
-                <td className="py-1.5 text-right text-xs font-semibold">Total {c}</td>
+                <td className="py-1.5 text-right text-xs font-semibold">{d.total(c)}</td>
                 <td className="py-1.5 text-right font-bold">
                   {sign}
                   {money(v, c)}

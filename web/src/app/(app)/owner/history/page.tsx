@@ -3,9 +3,8 @@ import { CancelActionButton } from "./CancelActionButton";
 import { tableCls, theadCls, tbodyCls, rowCls, thCls, tdCls } from "@/lib/ui";
 import { EmptyState } from "@/components/EmptyState";
 import type { CurrencyCode } from "@/lib/types";
-
-const money = (n: number, c: string) =>
-  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(n) + " " + c;
+import { getI18n } from "@/i18n/server";
+import { formatMoney, formatIsoDate } from "@/i18n/format";
 
 interface Action {
   kind: "payment" | "expense";
@@ -23,6 +22,9 @@ interface Action {
 
 export default async function HistoryPage() {
   const supabase = await createClient();
+  const { locale, t } = await getI18n();
+  const th = t.owner.history;
+  const money = (n: number, c: string) => formatMoney(locale, n, c);
 
   const [{ data: pays }, { data: exps }] = await Promise.all([
     supabase
@@ -108,7 +110,7 @@ export default async function HistoryPage() {
       amount: e.amount,
       currency: e.currency,
       school: e.schools?.name ?? "—",
-      label: `${e.expense_categories?.name ?? "Dépense"}${e.beneficiary ? ` · ${e.beneficiary}` : ""}`,
+      label: `${e.expense_categories?.name ?? th.expense}${e.beneficiary ? ` · ${e.beneficiary}` : ""}`,
       cancelled: !!c,
       cancelReason: c?.note ?? null,
       cancelAt: c?.at ?? null,
@@ -119,38 +121,35 @@ export default async function HistoryPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-semibold">Historique des actions</h1>
-        <p className="text-sm text-neutral-500">
-          Toutes les entrées et sorties. Une annulation ne supprime rien : l&apos;action
-          reste visible avec son motif, mais n&apos;est plus comptée dans les totaux.
-        </p>
+        <h1 className="text-lg font-semibold">{th.title}</h1>
+        <p className="text-sm text-neutral-500">{th.subtitle}</p>
       </div>
 
       <div className="overflow-x-auto">
         <table className={`${tableCls} min-w-[900px]`}>
           <thead className={theadCls}>
             <tr>
-              <th className={thCls}>Date</th>
-              <th className={thCls}>Type</th>
-              <th className={thCls}>École</th>
-              <th className={thCls}>Détail</th>
-              <th className={`${thCls} text-right`}>Montant</th>
-              <th className={thCls}>Statut</th>
-              <th className={thCls}>Action</th>
+              <th className={thCls}>{th.colDate}</th>
+              <th className={thCls}>{th.colType}</th>
+              <th className={thCls}>{th.colSchool}</th>
+              <th className={thCls}>{th.colDetail}</th>
+              <th className={`${thCls} text-right`}>{th.colAmount}</th>
+              <th className={thCls}>{th.colStatus}</th>
+              <th className={thCls}>{th.colAction}</th>
             </tr>
           </thead>
           <tbody className={tbodyCls}>
             {actions.map((a) => (
               <tr key={`${a.kind}-${a.id}`} className={`${rowCls} ${a.cancelled ? "bg-red-50/40 dark:bg-red-950/10" : ""}`}>
-                <td className={`${tdCls} whitespace-nowrap`}>{a.paid_at}</td>
+                <td className={`${tdCls} whitespace-nowrap`}>{formatIsoDate(a.paid_at)}</td>
                 <td className={tdCls}>
                   {a.kind === "payment" ? (
                     <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                      Recette
+                      {th.income}
                     </span>
                   ) : (
                     <span className="rounded bg-orange-50 px-1.5 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-400">
-                      Dépense
+                      {th.expense}
                     </span>
                   )}
                 </td>
@@ -159,7 +158,7 @@ export default async function HistoryPage() {
                   <span className={a.cancelled ? "line-through decoration-red-400" : ""}>{a.label}</span>
                   {a.cancelled && a.cancelReason && (
                     <span className="mt-0.5 block text-[11px] text-red-600">
-                      Motif : {a.cancelReason}
+                      {th.reason(a.cancelReason)}
                     </span>
                   )}
                 </td>
@@ -170,11 +169,11 @@ export default async function HistoryPage() {
                 <td className={tdCls}>
                   {a.cancelled ? (
                     <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
-                      Annulé
+                      {th.cancelled}
                     </span>
                   ) : (
                     <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                      Actif
+                      {th.active}
                     </span>
                   )}
                 </td>
@@ -186,7 +185,7 @@ export default async function HistoryPage() {
             {actions.length === 0 && (
               <tr>
                 <td colSpan={7}>
-                  <EmptyState>Aucune action pour le moment.</EmptyState>
+                  <EmptyState>{th.empty}</EmptyState>
                 </td>
               </tr>
             )}

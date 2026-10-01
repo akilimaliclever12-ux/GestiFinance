@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth";
-import { ROLE_LABELS } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
 import { logout } from "@/app/login/actions";
 import { AppHeader } from "@/components/AppHeader";
 import { OfflineProvider } from "@/lib/offline/OfflineProvider";
@@ -12,18 +12,16 @@ export default async function AppLayout({
 }) {
   const session = await getSessionProfile();
   if (!session) redirect("/login");
+  const { t } = await getI18n();
 
   if (!session.profile) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6 text-center">
         <div>
-          <p className="text-lg font-semibold">Compte non configuré</p>
-          <p className="mt-2 text-sm text-neutral-500">
-            Votre compte n&apos;est rattaché à aucune organisation. Contactez
-            l&apos;administrateur ECOBU.
-          </p>
+          <p className="text-lg font-semibold">{t.common.unconfigured.title}</p>
+          <p className="mt-2 text-sm text-neutral-500">{t.common.unconfigured.body}</p>
           <form action={logout} className="mt-4">
-            <button className="text-sm text-brand underline">Se déconnecter</button>
+            <button className="text-sm text-brand underline">{t.common.logout}</button>
           </form>
         </div>
       </main>
@@ -43,7 +41,7 @@ export default async function AppLayout({
     >
       <div className="min-h-screen bg-app">
         <AppHeader
-          roleLabel={ROLE_LABELS[profile.role]}
+          roleLabel={t.common.roles[profile.role]}
           displayName={profile.full_name ?? email ?? ""}
           showSync={isAccountant}
         />

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SchoolForm } from "./SchoolForm";
+import { getI18n } from "@/i18n/server";
 
 export default async function SchoolsPage() {
   const supabase = await createClient();
+  const { t } = await getI18n();
+  const ts = t.owner.schools;
 
   const [{ data: schools }, { data: students }] = await Promise.all([
     supabase.from("schools").select("id, name, address").is("deleted_at", null).order("name"),
@@ -19,26 +22,24 @@ export default async function SchoolsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold">Écoles</h1>
-        <p className="text-sm text-neutral-500">
-          Ajoutez et consultez les établissements de votre organisation.
-        </p>
+        <h1 className="text-lg font-semibold">{ts.title}</h1>
+        <p className="text-sm text-neutral-500">{ts.subtitle}</p>
       </div>
 
       <SchoolForm />
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-          Mes écoles ({list.length})
+          {ts.mySchools(list.length)}
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] overflow-hidden rounded-xl border border-neutral-200 bg-white text-sm dark:border-neutral-800 dark:bg-neutral-900">
             <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-800">
               <tr>
-                <th className="px-4 py-2">Nom</th>
-                <th className="px-4 py-2">Adresse</th>
-                <th className="px-4 py-2 text-right">Élèves</th>
-                <th className="px-4 py-2">En-tête</th>
+                <th className="px-4 py-2">{ts.colName}</th>
+                <th className="px-4 py-2">{ts.colAddress}</th>
+                <th className="px-4 py-2 text-right">{ts.colStudents}</th>
+                <th className="px-4 py-2">{ts.colLetterhead}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -49,7 +50,7 @@ export default async function SchoolsPage() {
                   <td className="px-4 py-2 text-right">{countBySchool.get(s.id) ?? 0}</td>
                   <td className="px-4 py-2">
                     <Link href={`/owner/schools/${s.id}`} className="text-brand hover:underline">
-                      Configurer
+                      {ts.configure}
                     </Link>
                   </td>
                 </tr>
@@ -57,7 +58,7 @@ export default async function SchoolsPage() {
               {list.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-4 text-neutral-500">
-                    Aucune école. Ajoutez-en une ci-dessus.
+                    {ts.empty}
                   </td>
                 </tr>
               )}

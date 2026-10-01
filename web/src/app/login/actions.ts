@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { HOME_BY_ROLE, type AppRole } from "@/lib/types";
+import { getI18n } from "@/i18n/server";
 
 export async function login(
   _prev: { error: string } | null,
@@ -11,8 +12,10 @@ export async function login(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
+  const { t } = await getI18n();
+
   if (!email || !password) {
-    return { error: "Email et mot de passe requis." };
+    return { error: t.auth.login.errors.required };
   }
 
   const supabase = await createClient();
@@ -22,7 +25,7 @@ export async function login(
   });
 
   if (error) {
-    return { error: "Identifiants invalides." };
+    return { error: t.auth.login.errors.invalid };
   }
 
   // Déterminer le tableau de bord selon le rôle

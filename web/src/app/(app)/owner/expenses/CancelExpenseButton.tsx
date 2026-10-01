@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/i18n/client";
 import { cancelExpense } from "@/lib/expenses-actions";
 
 export function CancelExpenseButton({ expenseId }: { expenseId: string }) {
@@ -10,6 +11,8 @@ export function CancelExpenseButton({ expenseId }: { expenseId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useI18n();
+  const tc = t.owner.cancel;
 
   function confirm() {
     setError(null);
@@ -29,7 +32,7 @@ export function CancelExpenseButton({ expenseId }: { expenseId: string }) {
         onClick={() => setOpen(true)}
         className="rounded border border-red-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/40"
       >
-        Annuler
+        {tc.button}
       </button>
     );
   }
@@ -39,7 +42,7 @@ export function CancelExpenseButton({ expenseId }: { expenseId: string }) {
       <input
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        placeholder="Motif"
+        placeholder={tc.reasonShort}
         className="w-40 rounded border border-neutral-300 px-2 py-1 text-xs outline-none focus:border-brand dark:border-neutral-700 dark:bg-neutral-800"
       />
       <div className="flex gap-1">
@@ -48,13 +51,13 @@ export function CancelExpenseButton({ expenseId }: { expenseId: string }) {
           disabled={pending}
           className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
         >
-          {pending ? "…" : "Confirmer"}
+          {pending ? "…" : tc.confirm}
         </button>
         <button
           onClick={() => setOpen(false)}
           className="rounded border border-neutral-300 px-2 py-1 text-xs dark:border-neutral-700"
         >
-          Non
+          {tc.no}
         </button>
       </div>
       {error && <span className="text-[11px] text-red-600">{error}</span>}

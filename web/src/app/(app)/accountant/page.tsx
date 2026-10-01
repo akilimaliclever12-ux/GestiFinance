@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionProfile } from "@/lib/auth";
+import { getI18n } from "@/i18n/server";
 
 export default async function AccountantHome() {
   const supabase = await createClient();
   const session = await getSessionProfile();
+  const { t } = await getI18n();
+  const h = t.accountant.home;
   const canPayments = session?.profile?.can_payments ?? true;
   const canExpenses = session?.profile?.can_expenses ?? true;
 
@@ -16,40 +19,40 @@ export default async function AccountantHome() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Espace Comptable</h1>
-        <p className="text-sm text-neutral-500">Gérez les élèves, les frais et les mouvements.</p>
+        <h1 className="text-xl font-semibold">{h.title}</h1>
+        <p className="text-sm text-neutral-500">{h.subtitle}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <ModuleCard
           href="/accountant/students"
-          title="Élèves"
-          desc="Créer, importer, rechercher"
-          badge={`${students ?? 0} élève(s)`}
+          title={h.studentsTitle}
+          desc={h.studentsDesc}
+          badge={h.studentsBadge(students ?? 0)}
           active
         />
         <ModuleCard
           href="/accountant/fees"
-          title="Frais scolaires"
-          desc="Types de frais et barèmes"
-          badge={`${feeTypes ?? 0} type(s)`}
+          title={h.feesTitle}
+          desc={h.feesDesc}
+          badge={h.feesBadge(feeTypes ?? 0)}
           active
         />
         {canPayments && (
           <ModuleCard
             href="/accountant/payments"
-            title="Paiements"
-            desc="Enregistrement des bordereaux + reçus"
-            badge="Entrées"
+            title={h.paymentsTitle}
+            desc={h.paymentsDesc}
+            badge={h.paymentsBadge}
             active
           />
         )}
         {canExpenses && (
           <ModuleCard
             href="/accountant/expenses"
-            title="Dépenses"
-            desc="Livre de caisse — sorties"
-            badge="Sorties"
+            title={h.expensesTitle}
+            desc={h.expensesDesc}
+            badge={h.expensesBadge}
             active
           />
         )}

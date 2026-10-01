@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
-import { frDate, periodLine, reportFileName, type Aggregate, type ReportData } from "./report-types";
+import { intlLocale, type Locale } from "@/i18n/config";
+import { frDate, periodLine, reportFileName, reportText, type Aggregate, type ReportData } from "./report-types";
 
 const BRAND: [number, number, number] = [22, 104, 227]; // #1668e3
 const MARGIN = 15;
@@ -9,10 +10,11 @@ const MARGIN = 15;
  * Les polices standard de jsPDF ne couvrent que WinAnsi : on remplace les espaces
  * insécables (séparateurs de milliers fr-FR) et le signe moins typographique.
  */
-const t = (s: string) => s.replace(/[  ]/g, " ").replace(/−/g, "-");
+const w = (s: string) => s.replace(/[  ]/g, " ").replace(/−/g, "-");
 
-const money = (n: number, c: string) =>
-  t(new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)) +
+// en-US : séparateur de milliers « , » (compatible WinAnsi) ; fr-FR : espaces insécables remplacées par w().
+const money = (locale: Locale, n: number, c: string) =>
+  w(new Intl.NumberFormat(intlLocale(locale), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)) +
   " " +
   c;
 
@@ -44,16 +46,16 @@ function letterhead(doc: jsPDF, r: ReportData, logo: { data: string; ratio: numb
   doc.setTextColor(20);
   if (s.header_top) {
     doc.setFont("helvetica", "bold").setFontSize(8);
-    doc.text(t(s.header_top.toUpperCase()), cx, y, { align: "center" });
+    doc.text(w(s.header_top.toUpperCase()), cx, y, { align: "center" });
     y += 4;
   }
   if (s.sub_header) {
     doc.setFont("helvetica", "normal").setFontSize(8);
-    doc.text(t(s.sub_header), cx, y, { align: "center" });
+    doc.text(w(s.sub_header), cx, y, { align: "center" });
     y += 4;
   }
 
-  const name = t((s.official_name || s.name).toUpperCase());
+  const name = w((s.official_name || s.name).toUpperCase());
   doc.setFont("helvetica", "bold").setFontSize(13);
   const nameW = doc.getTextWidth(name);
   const logoH = 14;
@@ -64,18 +66,18 @@ function letterhead(doc: jsPDF, r: ReportData, logo: { data: string; ratio: numb
   const textX = startX + logoW + gap;
   doc.text(name, textX, y + (logo ? 6 : 5));
 
-  const contact = [s.address, s.bp ? `B.P. ${s.bp}` : null, s.phone ? `Tél : ${s.phone}` : null, s.email]
+  const contact = [s.address, s.bp ? `B.P. ${s.bp}` : null, s.phone ? reportText(r).phone(s.phone) : null, s.email]
     .filter(Boolean)
     .join("  ·  ");
   if (contact) {
     doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(90);
-    doc.text(t(contact), logo ? textX : cx, y + (logo ? 11 : 10), { align: logo ? "left" : "center" });
+    doc.text(w(contact), logo ? textX : cx, y + (logo ? 11 : 10), { align: logo ? "left" : "center" });
   }
   y += logo ? logoH + 3 : 15;
 
   if (s.motto) {
     doc.setFont("helvetica", "italic").setFontSize(8).setTextColor(90);
-    doc.text(t(`« ${s.motto} »`), cx, y, { align: "center" });
+    doc.text(w(`« ${s.motto} »`), cx, y, { align: "center" });
     y += 3;
   }
 
@@ -84,17 +86,18 @@ function letterhead(doc: jsPDF, r: ReportData, logo: { data: string; ratio: numb
   return y + 8;
 }
 
-function aggregateTable(doc: jsPDF, y: number, title: string, data: Aggregate, sign: string) {
+function aggregateTable(doc: jsPDF, r: ReportData, y: number, title: string, data: Aggregate, sign: string) {
+  const d = reportText(r);
   doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(20);
-  doc.text(title, MARGIN, y);
+  doc.text(w(title), MARGIN, y);
   autoTable(doc, {
     startY: y + 2,
     margin: { left: MARGIN, right: MARGIN },
-    head: [["Libellé", "Montant"]],
+    head: [[w(d.label), w(d.amount)]],
     body: data.lines.length
-      ? data.lines.map((l) => [t(l.label), sign + money(l.amount, l.currency)])
-      : [["Aucun mouvement sur la période.", ""]],
-    foot: Object.entries(data.totals).map(([c, v]) => [`Total ${c}`, sign + money(v, c)]),
+      ? data.lines.map((l) => [w(l.label), sign + money(r.locale, l.amount, l.currency)])
+      : [[w(d.noMovement), ""]],
+    foot: Object.entries(data.totals).map(([c, v]) => [w(d.total(c)), sign + money(r.locale, v, c)]),
     theme: "striped",
     styles: { fontSize: 9, cellPadding: 1.8 },
     headStyles: { fillColor: BRAND },
@@ -109,6 +112,7 @@ function aggregateTable(doc: jsPDF, y: number, title: string, data: Aggregate, s
 }
 
 export async function exportReportPdf(r: ReportData) {
+  const d = reportText(r);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -116,25 +120,28 @@ export async function exportReportPdf(r: ReportData) {
 
   let y = letterhead(doc, r, logo);
   doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(20);
-  doc.text(r.title, pageW / 2, y, { align: "center" });
+  doc.text(w(r.title), pageW / 2, y, { align: "center" });
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(90);
-  doc.text(t(periodLine(r)), pageW / 2, y + 5, { align: "center" });
+  doc.text(w(periodLine(r)), pageW / 2, y + 5, { align: "center" });
   y += 14;
 
   if (r.kind !== "depenses") {
-    y = aggregateTable(doc, y, "Recettes (par type de frais)", r.recettes, "");
-    y = aggregateTable(doc, y, "Recettes (par banque)", r.parBanque, "");
+    y = aggregateTable(doc, r, y, d.recettesByFee, r.recettes, "");
+    y = aggregateTable(doc, r, y, d.recettesByBank, r.parBanque, "");
   }
-  if (r.kind !== "recettes") y = aggregateTable(doc, y, "Dépenses (par catégorie)", r.depenses, "-");
+  if (r.kind !== "recettes") y = aggregateTable(doc, r, y, d.depensesByCategory, r.depenses, "-");
 
   if (r.kind === "synthese") {
     autoTable(doc, {
       startY: y,
       margin: { left: MARGIN, right: MARGIN },
-      head: [["Solde net par devise", ""]],
+      head: [[w(d.netBalance), ""]],
       body: r.currencies.length
-        ? r.currencies.map((c) => [c, money((r.recettes.totals[c] ?? 0) - (r.depenses.totals[c] ?? 0), c)])
-        : [["Aucun mouvement sur la période.", ""]],
+        ? r.currencies.map((c) => [
+            c,
+            money(r.locale, (r.recettes.totals[c] ?? 0) - (r.depenses.totals[c] ?? 0), c),
+          ])
+        : [[w(d.noMovement), ""]],
       theme: "plain",
       styles: { fontSize: 10, cellPadding: 2, fillColor: [235, 241, 252] },
       headStyles: { fontStyle: "bold", textColor: 20 },
@@ -156,7 +163,7 @@ export async function exportReportPdf(r: ReportData) {
   doc.setDrawColor(180).setLineWidth(0.3);
   doc.line(MARGIN, y + 14, MARGIN + 50, y + 14);
   doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(90);
-  doc.text("Le Promoteur", MARGIN, y + 18);
+  doc.text(w(d.signature), MARGIN, y + 18);
 
   // Annexes : détail des opérations
   const detailStyles = {
@@ -168,20 +175,20 @@ export async function exportReportPdf(r: ReportData) {
   if (r.kind !== "depenses" && r.payments.length) {
     doc.addPage();
     doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(20);
-    doc.text(`Annexe — Détail des recettes (${r.payments.length})`, MARGIN, MARGIN);
+    doc.text(w(d.annexRecettes(r.payments.length)), MARGIN, MARGIN);
     autoTable(doc, {
       ...detailStyles,
       startY: MARGIN + 3,
-      head: [["Date", "Matricule", "Élève", "Classe", "Frais", "Banque", "Bordereau", "Montant"]],
+      head: [[d.date, d.matricule, d.student, d.className, d.fee, d.bankCol, d.bordereau, d.amount].map(w)],
       body: r.payments.map((p) => [
         frDate(p.date),
-        t(p.matricule),
-        t(p.student),
-        t(p.className),
-        t(p.fee),
-        t(p.bank),
-        t(p.bordereau),
-        money(p.amount, p.currency),
+        w(p.matricule),
+        w(p.student),
+        w(p.className),
+        w(p.fee),
+        w(p.bank),
+        w(p.bordereau),
+        money(r.locale, p.amount, p.currency),
       ]),
       columnStyles: { 7: { halign: "right" } },
     });
@@ -189,18 +196,18 @@ export async function exportReportPdf(r: ReportData) {
   if (r.kind !== "recettes" && r.expenses.length) {
     doc.addPage();
     doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(20);
-    doc.text(`Annexe — Détail des dépenses (${r.expenses.length})`, MARGIN, MARGIN);
+    doc.text(w(d.annexDepenses(r.expenses.length)), MARGIN, MARGIN);
     autoTable(doc, {
       ...detailStyles,
       startY: MARGIN + 3,
-      head: [["Date", "Catégorie", "Bénéficiaire", "Mode", "Référence", "Montant"]],
+      head: [[d.date, d.category, d.beneficiary, d.method, d.reference, d.amount].map(w)],
       body: r.expenses.map((e) => [
         frDate(e.date),
-        t(e.category),
-        t(e.beneficiary),
-        t(e.method),
-        t(e.reference),
-        money(e.amount, e.currency),
+        w(e.category),
+        w(e.beneficiary),
+        w(e.method),
+        w(e.reference),
+        money(r.locale, e.amount, e.currency),
       ]),
       columnStyles: { 5: { halign: "right" } },
     });
@@ -211,8 +218,8 @@ export async function exportReportPdf(r: ReportData) {
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     doc.setFont("helvetica", "normal").setFontSize(7).setTextColor(140);
-    doc.text(`${t(r.school.name)} — ${r.title} — édité via GestiFinance`, MARGIN, pageH - 8);
-    doc.text(`Page ${i}/${pages}`, pageW - MARGIN, pageH - 8, { align: "right" });
+    doc.text(w(d.footer(r.school.name, r.title)), MARGIN, pageH - 8);
+    doc.text(d.page(i, pages), pageW - MARGIN, pageH - 8, { align: "right" });
   }
 
   doc.save(reportFileName(r, "pdf"));

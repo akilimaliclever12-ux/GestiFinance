@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionProfile } from "@/lib/auth";
+import { getI18n } from "@/i18n/server";
 import type { CurrencyCode } from "@/lib/types";
 
 // ------------------------------------------------------------
@@ -117,8 +118,9 @@ export async function createPayment(
   formData: FormData,
 ): Promise<{ error?: string; paymentId?: string }> {
   const session = await getSessionProfile();
+  const a = (await getI18n()).t.accountant.actions;
   if (session?.profile?.role !== "accountant")
-    return { error: "Réservé au comptable." };
+    return { error: a.accountantOnlyDot };
   const supabase = await createClient();
 
   const student_id = String(formData.get("student_id") ?? "");
@@ -130,7 +132,7 @@ export async function createPayment(
   const note = String(formData.get("note") ?? "").trim() || null;
 
   if (!student_id || !fee_type_id || !(amount > 0) || !paid_at)
-    return { error: "Élève, frais, montant (> 0) et date sont obligatoires." };
+    return { error: a.paymentRequired };
 
   // La devise et l'école découlent du type de frais (source de vérité).
   const { data: feeType } = await supabase
@@ -138,7 +140,7 @@ export async function createPayment(
     .select("currency, school_id")
     .eq("id", fee_type_id)
     .single();
-  if (!feeType) return { error: "Type de frais introuvable." };
+  if (!feeType) return { error: a.feeTypeNotFound };
 
   const id = randomUUID();
   const { error } = await supabase.from("payment_events").insert({
@@ -160,7 +162,7 @@ export async function createPayment(
   if (error) {
     if (error.code === "23505")
       return {
-        error: `Le bordereau n°${bordereau_no} est déjà enregistré dans cette école (anti-doublon).`,
+        error: a.bordereauExists(bordereau_no ?? ""),
       };
     return { error: error.message };
   }
@@ -177,8 +179,9 @@ export async function cancelPayment(
   reason: string,
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await getSessionProfile();
+  const a = (await getI18n()).t.accountant.actions;
   if (session?.profile?.role !== "owner")
-    return { error: "Seul le promoteur peut autoriser une annulation." };
+    return { error: a.ownerOnlyCancel };
   const supabase = await createClient();
 
   const { data: pay } = await supabase
@@ -187,7 +190,7 @@ export async function cancelPayment(
     .eq("id", paymentId)
     .eq("event_type", "payment")
     .single();
-  if (!pay) return { error: "Paiement introuvable." };
+  if (!pay) return { error: a.paymentNotFound };
 
   const { error } = await supabase.from("payment_events").insert({
     id: randomUUID(),
@@ -207,7 +210,7 @@ export async function cancelPayment(
 
   if (error) {
     if (error.code === "23505")
-      return { error: "Ce paiement est déjà annulé." };
+      return { error: a.paymentAlreadyCancelled };
     return { error: error.message };
   }
 

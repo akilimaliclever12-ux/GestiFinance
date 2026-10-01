@@ -16,11 +16,16 @@ export function StaffForm({ schools }: { schools: SchoolRef[] }) {
   const tf = t.owner.staff.form;
   const [role, setRole] = useState<"accountant" | "controller">("accountant");
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Après une création réussie : rôle remis à « comptable » (ajusté au rendu,
+  // sans effet) et champs du formulaire vidés (DOM, dans l'effet).
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state?.success) setRole("accountant");
+  }
   useEffect(() => {
-    if (state?.success) {
-      formRef.current?.reset();
-      setRole("accountant");
-    }
+    if (state?.success) formRef.current?.reset();
   }, [state]);
 
   return (

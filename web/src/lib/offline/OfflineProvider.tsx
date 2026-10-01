@@ -7,6 +7,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { flushOutbox, pullAll, getLastSync } from "./sync";
 import type { Ctx } from "./repo";
@@ -26,6 +27,18 @@ interface OfflineState {
 }
 
 const OfflineContext = createContext<OfflineState | null>(null);
+
+// État réseau du navigateur (online/offline), lu comme une source externe.
+function subscribeOnline(cb: () => void) {
+  window.addEventListener("online", cb);
+  window.addEventListener("offline", cb);
+  return () => {
+    window.removeEventListener("online", cb);
+    window.removeEventListener("offline", cb);
+  };
+}
+const getOnline = () => navigator.onLine;
+const getOnlineServer = () => true;
 
 export function useOffline(): OfflineState {
   const c = useContext(OfflineContext);
@@ -48,7 +61,7 @@ export function OfflineProvider({
   canExpenses?: boolean;
   children: React.ReactNode;
 }) {
-  const [online, setOnline] = useState(true);
+  const online = useSyncExternalStore(subscribeOnline, getOnline, getOnlineServer);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const busy = useRef(false);
@@ -81,26 +94,23 @@ export function OfflineProvider({
 
   useEffect(() => {
     if (!enabled) return;
-    setOnline(navigator.onLine);
     getLastSync().then(setLastSync);
 
-    const onOnline = () => {
-      setOnline(true);
-      void syncNow();
-    };
-    const onOffline = () => setOnline(false);
+    // synchro au retour du réseau
+    const onOnline = () => void syncNow();
     window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
 
-    // synchro initiale si connecté
-    if (navigator.onLine) void syncNow();
+    // synchro initiale si connecté (juste après le premier rendu)
+    const initial = setTimeout(() => {
+      if (navigator.onLine) void syncNow();
+    }, 0);
 
     // filet de sécurité : tentative périodique de vidage de la file
     const timer = setInterval(() => void flush(), 30000);
 
     return () => {
       window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
+      clearTimeout(initial);
       clearInterval(timer);
     };
   }, [enabled, syncNow, flush]);

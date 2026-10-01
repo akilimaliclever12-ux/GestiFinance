@@ -18,10 +18,9 @@ export default function SignupPage() {
   const s = t.auth.signup;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-50 p-4 dark:bg-neutral-950">
-      <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-brand/15 blur-3xl dark:bg-brand/10" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark p-4">
 
-      <div className="relative w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-lg shadow-neutral-200/60 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-black/40">
+      <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl shadow-black/25">
         <div className="absolute right-4 top-4">
           <LangSwitch tone="light" />
         </div>

@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Interface bleu-blanc comme GestiEcole : toujours en thème clair.
+   Les variantes `dark:` ne s'appliquent qu'avec une classe .dark explicite
+   (jamais posée) — elles restent dans le code si l'on réactive un jour le
+   mode sombre, mais ne suivent plus le réglage de l'appareil. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #1f2937;
@@ -24,18 +30,9 @@
   --color-accent-red: #ce1126; /* rouge drapeau */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    /* Bleu-noir profond : plus de caractère que le gris pur */
-    --app-bg: #0a0d12;
-  }
-}
-
 html {
-  /* Contrôles natifs (calendriers, barres de défilement) adaptés au thème */
-  color-scheme: light dark;
+  /* Contrôles natifs (calendriers, barres de défilement) en clair */
+  color-scheme: light;
 }
 
 body {

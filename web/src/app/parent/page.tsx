@@ -139,19 +139,19 @@ export default function ParentPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/90">
+    <main className="min-h-screen bg-app">
+      <header className="sticky top-0 z-10 bg-brand text-white shadow-md shadow-brand-dark/20">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5">
           <div className="flex items-center gap-2.5">
-            <Logo size={36} />
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white p-0.5">
+              <Logo size={32} />
+            </span>
             <div className="leading-tight">
-              <p className="font-display text-sm font-bold">
-                <span className="text-brand">Gesti</span>Finance
-              </p>
-              <p className="text-xs text-neutral-500">{tp.title}</p>
+              <p className="font-display text-sm font-bold">GestiFinance</p>
+              <p className="text-xs text-white/80">{tp.title}</p>
             </div>
           </div>
-          <LangSwitch tone="light" />
+          <LangSwitch tone="dark" />
         </div>
       </header>
 

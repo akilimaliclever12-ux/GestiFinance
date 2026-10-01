@@ -13,11 +13,10 @@ export default function LoginPage() {
   const l = t.auth.login;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-50 p-4 dark:bg-neutral-950">
-      {/* Halo de marque discret */}
-      <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-brand/15 blur-3xl dark:bg-brand/10" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-brand to-brand-dark p-4">
+      {/* Fond dégradé bleu RDC, carte blanche (comme GestiEcole) */}
 
-      <div className="relative w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-lg shadow-neutral-200/60 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-black/40">
+      <div className="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl shadow-black/25">
         <div className="absolute right-4 top-4">
           <LangSwitch tone="light" />
         </div>
@@ -97,7 +96,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <p className="absolute inset-x-0 bottom-4 text-center text-xs text-neutral-400">
+      <p className="absolute inset-x-0 bottom-4 text-center text-xs text-white/70">
         GestiFinance · Offline-First · CDF · USD · BIF
       </p>
     </main>
